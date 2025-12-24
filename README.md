@@ -1,4 +1,4 @@
-# FOODSPHERE
+# FOODSPHERE - Self-ordering Project.
 
 First, install package:
 
