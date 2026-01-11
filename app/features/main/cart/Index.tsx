@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Plus, Minus, History, Pencil } from "lucide-react";
+import { ChevronLeft, Trash2, Plus, Minus, History, Pencil } from "lucide-react";
 import { useCart, CartItem } from "@/app/context/CartContext";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import OrderHistoryModal from "@/app/components/OrderHistoryModal";
 import { useState } from "react";
 
-const OrderRender = () => {
+const CartRender = () => {
   const {
     cartItems,
     updateQuantity,
@@ -16,6 +16,7 @@ const OrderRender = () => {
     totalPrice,
     updateCartItem,
     clearCart,
+    placeOrder,
   } = useCart();
   const [selectedItem, setSelectedItem] = useState<CartItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,7 +51,7 @@ const OrderRender = () => {
             href="/menu"
             className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
           >
-            <ArrowLeft size={24} />
+            <ChevronLeft size={24} />
           </Link>
           <h1 className="text-lg font-bold">My Order</h1>
         </div>
@@ -193,7 +194,14 @@ const OrderRender = () => {
                 ฿{totalPrice.toFixed(2)}
               </span>
             </div>
-            <button className="w-full bg-[var(--primary-orange-main)] text-white py-3 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all">
+            <button
+              onClick={() => {
+                placeOrder();
+                // Optionally navigate specifically or just close modal/cleared state
+                // The cart will become empty, showing the "Cart is empty" view
+              }}
+              className="w-full bg-[var(--primary-orange-main)] text-white py-3 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            >
               Checkout
             </button>
           </div>
@@ -216,4 +224,4 @@ const OrderRender = () => {
   );
 };
 
-export default OrderRender;
+export default CartRender;

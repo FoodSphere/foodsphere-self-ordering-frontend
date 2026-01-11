@@ -27,7 +27,7 @@ const BottomNavigation = () => {
     {
       label: 'Cart',
       icon: ShoppingCart,
-      href: '/order',
+      href: '/cart',
       badge: totalItems
     },
     {
