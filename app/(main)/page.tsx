@@ -1,11 +1,7 @@
-import MenuRender from "../features/main/menu/Index";
+import { redirect } from "next/navigation";
 
 const page = () => {
-  return (
-    <div>
-      <MenuRender />
-    </div>
-  );
+  redirect("/menu");
 };
 
 export default page;
