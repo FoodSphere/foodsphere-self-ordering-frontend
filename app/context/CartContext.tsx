@@ -19,13 +19,26 @@ export interface CartItem {
   modifiers?: modifier[];
 }
 
+export type OrderStatus = "not done" | "cooking" | "completed" | "canceled";
+
+export interface Order {
+  id: string;
+  items: CartItem[];
+  status: OrderStatus;
+  timestamp: string;
+  totalPrice: number;
+}
+
 interface CartContextType {
   cartItems: CartItem[];
+  placedOrders: Order[];
   addToCart: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
   updateCartItem: (id: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
+  placeOrder: () => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   totalItems: number;
   totalPrice: number;
 }
@@ -34,15 +47,24 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [placedOrders, setPlacedOrders] = useState<Order[]>([]);
 
   // Load from local storage on mount (optional but good UX)
   useEffect(() => {
     const savedCart = localStorage.getItem("cartItems");
+    const savedOrders = localStorage.getItem("placedOrders");
     if (savedCart) {
       try {
         setCartItems(JSON.parse(savedCart));
       } catch (e) {
         console.error("Failed to parse cart items", e);
+      }
+    }
+    if (savedOrders) {
+      try {
+        setPlacedOrders(JSON.parse(savedOrders));
+      } catch (e) {
+        console.error("Failed to parse placed orders", e);
       }
     }
   }, []);
@@ -51,6 +73,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
   }, [cartItems]);
+
+  useEffect(() => {
+    localStorage.setItem("placedOrders", JSON.stringify(placedOrders));
+  }, [placedOrders]);
 
   const addToCart = (
     item: Omit<CartItem, "quantity"> & { quantity?: number }
@@ -135,6 +161,30 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCartItems([]);
   };
 
+  const placeOrder = () => {
+    if (cartItems.length === 0) return;
+
+    const newOrder: Order = {
+      id: `${Date.now()}`,
+      items: [...cartItems],
+      status: "not done",
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      totalPrice: totalPrice,
+    };
+
+    setPlacedOrders((prev) => [...prev, newOrder]);
+    clearCart();
+  };
+
+  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+    setPlacedOrders((prev) =>
+      prev.map((order) => (order.id === orderId ? { ...order, status } : order))
+    );
+  };
+
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cartItems.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -145,11 +195,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     <CartContext.Provider
       value={{
         cartItems,
+        placedOrders,
         addToCart,
         removeFromCart,
         updateQuantity,
         updateCartItem,
         clearCart,
+        placeOrder,
+        updateOrderStatus,
         totalItems,
         totalPrice,
       }}

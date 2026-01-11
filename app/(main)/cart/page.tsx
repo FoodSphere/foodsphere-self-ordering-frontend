@@ -1,9 +1,9 @@
-import OrderRender from "@/app/features/main/order/Index";
+import CartRender from "@/app/features/main/cart/Index";
 
 const page = () => {
   return (
     <div>
-      <OrderRender />
+      <CartRender />
     </div>
   );
 };
