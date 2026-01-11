@@ -115,7 +115,7 @@ const MenuRender = () => {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header / Search placeholder if needed or just title */}
       {/* For now, just spacing top */}
 
@@ -126,7 +126,7 @@ const MenuRender = () => {
         onSearch={setSearchQuery}
       />
 
-      <main className="flex-1 px-4 pt-4">
+      <main className="flex-1 px-4 pt-4 overflow-y-auto mb-25">
         {/* Category Title */}
         <div className="mb-4">
           <h2 className="text-xl font-bold text-gray-800">{activeCategory}</h2>
