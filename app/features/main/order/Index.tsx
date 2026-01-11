@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Plus, Minus, History } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Minus, History, Pencil } from "lucide-react";
 import { useCart, CartItem } from "@/app/context/CartContext";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import OrderHistoryModal from "@/app/components/OrderHistoryModal";
@@ -42,9 +42,9 @@ const OrderRender = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden pb-20">
       {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm sticky top-0 z-10 flex items-center justify-between gap-3">
+      <div className="bg-white px-4 py-3 shadow-sm flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Link
             href="/menu"
@@ -54,7 +54,7 @@ const OrderRender = () => {
           </Link>
           <h1 className="text-lg font-bold">My Order</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-4 mr-4">
           <button
             onClick={() => {
               clearCart();
@@ -65,16 +65,16 @@ const OrderRender = () => {
           </button>
           <button
             onClick={() => setIsHistoryModalOpen(true)}
-            className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-full flex items-center justify-center"
+            className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-full flex items-center justify-center cursor-pointer"
           >
             <History size={24} />
           </button>
         </div>
       </div>
 
-      <main className="flex-1 px-4 pt-4 flex flex-col gap-4">
+      <main className="flex-1 px-4 pt-4 flex flex-col gap-4 overflow-hidden">
         {cartItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-gray-500 gap-2">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
             <p className="text-lg font-medium">Your cart is empty</p>
             <Link
               href="/menu"
@@ -84,11 +84,11 @@ const OrderRender = () => {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pb-4">
             {cartItems.map((item) => (
               <div
                 key={item.id}
-                className="bg-white p-3 rounded-xl shadow-sm flex gap-3 items-center active:bg-gray-50 transition-colors cursor-pointer"
+                className="bg-white p-3 rounded-xl shadow-sm flex gap-3 items-center active:bg-gray-50 transition-colors cursor-pointer flex-shrink-0"
                 onClick={() => handleCartItemClick(item)}
               >
                 {/* Image */}
@@ -113,15 +113,26 @@ const OrderRender = () => {
                     <p className="font-semibold text-gray-800 line-clamp-1 text-xl">
                       {item.title}
                     </p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFromCart(item.id);
-                      }}
-                      className="text-gray-400 hover:text-red-500 p-1 -mr-1"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCartItemClick(item);
+                        }}
+                        className="text-gray-400 hover:text-[var(--primary-orange-main)] cursor-pointer"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromCart(item.id);
+                        }}
+                        className="text-gray-400 hover:text-red-500 cursor-pointer"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="p-0 m-0">
@@ -168,25 +179,24 @@ const OrderRender = () => {
                 </div>
               </div>
             ))}
-
-            {/* Spacer for fixed bottom elements */}
-            <div className="h-24"></div>
           </div>
         )}
       </main>
 
       {/* Summary */}
       {cartItems.length > 0 && (
-        <div className="fixed bottom-20 left-4 right-4 bg-white p-4 rounded-xl shadow-2xl border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-gray-600">Total</span>
-            <span className="text-2xl font-bold text-[var(--primary-orange-main)]">
-              ฿{totalPrice.toFixed(2)}
-            </span>
+        <div className="px-4 pb-4 bg-gray-50 flex-shrink-0">
+          <div className="bg-white p-4 rounded-xl shadow-2xl border border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-600">Total</span>
+              <span className="text-2xl font-bold text-[var(--primary-orange-main)]">
+                ฿{totalPrice.toFixed(2)}
+              </span>
+            </div>
+            <button className="w-full bg-[var(--primary-orange-main)] text-white py-3 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all">
+              Checkout
+            </button>
           </div>
-          <button className="w-full bg-[var(--primary-orange-main)] text-white py-3 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all">
-            Checkout
-          </button>
         </div>
       )}
 
