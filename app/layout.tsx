@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "FOODSPHERE self-ordering frontend project.",
 };
 
+import { CartProvider } from "@/app/context/CartContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>{/* <link rel="icon" href="/icons/sahapanLogo01.svg" /> */}</head>
-      <body className={`${notoSanThai.className}`}>{children}</body>
+      <body className={`${notoSanThai.className}`}>
+        <CartProvider>
+          {children}
+        </CartProvider>
+      </body>
     </html>
   );
 }
