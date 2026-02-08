@@ -6,15 +6,23 @@ import { getCookie } from "@/libs/cookie";
 
 import { useGlobalStore } from "../store/globalStore";
 import { EHttpStatusCode } from "../types/enum";
+import router from "next/router";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL || "";
 
 const handleResponse = async (res: Response) => {
   try {
     const contentType = res.headers.get("content-type");
 
     if (contentType && contentType.includes("application/json")) {
-      return await res.json();
+      return {
+        statusCode: res.status,
+        message: {
+          th: "",
+          en: "",
+        },
+        data: await res.json(),
+      };
     } else {
       const text = await res.text();
       throw new Error(text);
@@ -48,6 +56,8 @@ export const apiGet = async (path: string, query?: string) => {
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       await signOut();
+      router.push("/not-found");
+      return;
     }
     return await handleResponse(res);
   } catch (error) {
@@ -75,6 +85,8 @@ export const apiGetNoLoading = async (path: string, query?: string) => {
     return await handleResponse(res);
   } catch (error) {
     console.log("error :", error);
+  } finally {
+    useGlobalStore.getState().setLoading(false);
   }
 };
 
