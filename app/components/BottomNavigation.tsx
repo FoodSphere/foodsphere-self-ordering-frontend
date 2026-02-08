@@ -1,11 +1,9 @@
 'use client'
 
-import { UtensilsCrossed, ShoppingCart, CreditCard, Search } from 'lucide-react'
+import { UtensilsCrossed, CreditCard, ReceiptText } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/libs/utils'
-
-import { useCart } from '@/app/context/CartContext'
 
 interface NavItem {
   label: string
@@ -16,7 +14,6 @@ interface NavItem {
 
 const BottomNavigation = () => {
   const pathname = usePathname()
-  const { totalItems } = useCart()
 
   const navItems: NavItem[] = [
     {
@@ -25,10 +22,9 @@ const BottomNavigation = () => {
       href: '/menu',
     },
     {
-      label: 'Cart',
-      icon: ShoppingCart,
-      href: '/cart',
-      badge: totalItems
+      label: 'My Order',
+      icon: ReceiptText,
+      href: '/my-order',
     },
     {
       label: 'Payment',
@@ -39,7 +35,7 @@ const BottomNavigation = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-2 px-6 safe-area-bottom z-50">
-      <div className="flex justify-between items-center h-20">
+      <div className="flex justify-between items-center h-18">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           
@@ -52,14 +48,7 @@ const BottomNavigation = () => {
                  isActive ? "text-[var(--primary-orange-main)] scale-105" : "text-gray-400 hover:text-gray-600"
               )}
             >
-              <div className="relative">
-                <item.icon size={32} strokeWidth={isActive ? 2.5 : 2} />
-                {item.badge ? (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </div>
+              <item.icon size={28} strokeWidth={isActive ? 2.5 : 2} />
               <span className="text-xs font-medium">{item.label}</span>
             </Link>
           )
