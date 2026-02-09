@@ -6,7 +6,6 @@ import { getCookie } from "@/libs/cookie";
 
 import { useGlobalStore } from "../store/globalStore";
 import { EHttpStatusCode } from "../types/enum";
-import router from "next/router";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL || "";
 
@@ -56,9 +55,10 @@ export const apiGet = async (path: string, query?: string) => {
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       await signOut();
-      router.push("/not-found");
+      window.location.href = "/not-found";
       return;
     }
+
     return await handleResponse(res);
   } catch (error) {
     console.log("error :", error);

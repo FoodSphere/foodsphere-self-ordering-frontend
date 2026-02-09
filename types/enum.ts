@@ -12,3 +12,10 @@ export enum ESort {
   ASC = "asc",
   DESC = "desc",
 }
+
+export enum EOrderStatus {
+  PENDING = 0,
+  COOKING = 1,
+  COMPLETED = 2,
+  CANCELLED = 3,
+}
