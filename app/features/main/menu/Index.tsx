@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import BottomNavigation from "@/app/components/BottomNavigation";
 import CategoryTabs from "@/app/components/CategoryTabs";
 import MenuItemCard from "@/app/components/MenuItemCard";
-import { useCart, CartItem } from "@/app/context/CartContext";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
+import { useCart} from "@/app/context/CartContext";
+import { useMenu } from "@/app/context/MenuContext";
+import { CartItem } from "@/types/cartType";
+import { MenuItem } from "@/types/menuType";
 
 // Mock Data
 const CATEGORIES = [
@@ -18,58 +20,9 @@ const CATEGORIES = [
   "Beverage",
 ];
 
-const MENU_ITEMS = [
-  {
-    id: "1",
-    title: "Pork Steak",
-    price: 109.0,
-    category: "Steak",
-    imageUrl:
-      "https://images.unsplash.com/photo-1600891965050-681fb7c34dcb?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "2",
-    title: "French Fries",
-    price: 79.0,
-    category: "Appetizer",
-    imageUrl:
-      "https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Fried Onion",
-    price: 89.0,
-    category: "Appetizer",
-    imageUrl:
-      "https://images.unsplash.com/photo-1618556653033-56f8f8319e64?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "4",
-    title: "Chicken Nuggets",
-    price: 89.0,
-    category: "Appetizer",
-    imageUrl:
-      "https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "5",
-    title: "Beef Burger",
-    price: 139.0,
-    category: "Burger",
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "6",
-    title: "Fish Burger",
-    price: 129.0,
-    category: "Burger",
-    imageUrl:
-      "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?q=80&w=800&auto=format&fit=crop",
-  },
-];
-
 const MenuRender = () => {
+  const { menus } = useMenu();
+
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const { addToCart } = useCart();
@@ -78,44 +31,43 @@ const MenuRender = () => {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleMenuItemClick = (item: any) => {
-    // Convert menu item to cart item structure (mocking quantity/options)
-    setSelectedMenuItem({
-      ...item,
+  const handleMenuItemClick = (item: MenuItem) => {
+    const Menu: CartItem = {
+      menuId: item.id,
+      title: item.name,
+      description: item.description,
+      price: item.price,
+      imageUrl: item.image_url,
       quantity: 1,
-      basePrice: item.price,
-    });
+      notes: "",
+    }
+
+    setSelectedMenuItem(Menu);
     setIsModalOpen(true);
   };
 
-  const handleAddToCart = (
-    item: CartItem,
-    quantity: number,
-    notes: string,
-    modifiers: { name: string; price: number }[]
-  ) => {
-    // Add to cart with customizations
+  const handleAddToCart = (item: CartItem, quantity: number, notes: string) => {
+    // Add to cart with notes
     addToCart({
       ...item,
-      quantity: quantity, // This is initial quantity from modal
+      quantity: quantity,
       notes,
-      modifiers,
-      price: item.basePrice + modifiers.reduce((sum, m) => sum + m.price, 0),
+      price: item.price,
     });
     setIsModalOpen(false);
   };
 
-  const filteredItems = MENU_ITEMS.filter((item) => {
+  const filteredItems = menus.filter((item) => {
     const matchesCategory =
-      activeCategory === "All" || item.category === activeCategory;
-    const matchesSearch = item.title
+      activeCategory === "All" || item.tag.includes(activeCategory);
+    const matchesSearch = item.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* Header / Search placeholder if needed or just title */}
       {/* For now, just spacing top */}
 
@@ -126,7 +78,7 @@ const MenuRender = () => {
         onSearch={setSearchQuery}
       />
 
-      <main className="flex-1 px-4 pt-4 overflow-y-auto mb-25">
+      <main className="flex-1 px-4 pt-4 overflow-y-auto pb-20 mb-20">
         {/* Category Title */}
         <div className="mb-4">
           <h2 className="text-xl font-bold text-gray-800">{activeCategory}</h2>
@@ -138,9 +90,9 @@ const MenuRender = () => {
             <MenuItemCard
               key={item.id}
               id={item.id}
-              title={item.title}
+              name={item.name}
               price={item.price}
-              imageUrl={item.imageUrl}
+              imageUrl={item.image_url}
               onClick={() => handleMenuItemClick(item)}
             />
           ))}

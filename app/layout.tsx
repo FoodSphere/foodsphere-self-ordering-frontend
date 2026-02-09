@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 import { CartProvider } from "@/app/context/CartContext";
+import { MenuProvider } from "@/app/context/MenuContext";
 
 export default function RootLayout({
   children,
@@ -24,9 +25,9 @@ export default function RootLayout({
     <html lang="en">
       <head>{/* <link rel="icon" href="/icons/sahapanLogo01.svg" /> */}</head>
       <body className={`${notoSanThai.className}`}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <MenuProvider>
+          <CartProvider>{children}</CartProvider>
+        </MenuProvider>
       </body>
     </html>
   );

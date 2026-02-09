@@ -33,7 +33,7 @@ const CategoryTabs = ({
   };
 
   return (
-    <div className="w-full bg-white sticky top-0 z-10 shadow-sm flex flex-col z-50">
+    <div className="w-full bg-white shadow-sm flex flex-col z-50">
       <div className="px-4 py-2">
         <h2 className="text-xl font-bold text-gray-800">Hell's Kitchen</h2>
         <div className="relative">
@@ -49,7 +49,7 @@ const CategoryTabs = ({
           />
         </div>
       </div>
-      <div className="flex justify-between items-center w-full pb-2">
+      <div className="flex justify-between items-center w-full pb-2 sticky top-0 z-50">
         <button
           onClick={() => scroll("left")}
           className="p-1 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-gray-600 hover:text-[var(--primary-orange-main)] transition-colors ml-1"
