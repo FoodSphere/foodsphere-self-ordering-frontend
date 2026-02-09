@@ -1,7 +1,8 @@
 "use client";
 
+import { EOrderStatus } from "@/types/enum";
+import { OrderGroupWithMenuMapping } from "@/types/orderType";
 import { X, Clock } from "lucide-react";
-import { useCart, OrderGroup, CartItem } from "../context/CartContext";
 
 interface OrderHistoryModalProps {
   isOpen: boolean;
@@ -9,61 +10,46 @@ interface OrderHistoryModalProps {
 }
 
 // Mock Data based on the provided image
-const orderHistoryData: OrderGroup[] = [
+const orderHistoryData: OrderGroupWithMenuMapping[] = [
   {
-    id: "mkbbca5qjy9jgjjl3u9",
+    id: 1,
+    create_time: "2022-01-01T00:00:00.000Z",
+    update_time: "2022-01-01T00:00:00.000Z",
+    status: EOrderStatus.PENDING,
     items: [
       {
-        id: "1",
-        title: "เนื้อปลากะพง",
+        menu_id: 1,
+        name: "เนื้อปลากะพง",
         quantity: 3,
-        price: 80.0,
-        basePrice: 80.0,
-        modifiers: [],
-        notes: "",
-        imageUrl: "",
-        menuId: "",
-        status: "pending",
+        price_per_item: 80.0,
+        note: "",
+        image_url: "",
       },
       {
-        id: "2",
-        title: "ไข่ปลาหมึก",
+        menu_id: 2,
+        name: "ไข่ปลาหมึก",
         quantity: 2,
-        price: 60.0,
-        basePrice: 60.0,
-        modifiers: [],
-        notes: "",
-        imageUrl: "",
-        menuId: "",
-        status: "pending",
+        price_per_item: 60.0,
+        note: "",
+        image_url: "",
       },
       {
-        id: "3",
-        title: "มอสซาเรลล่าชีส",
+        menu_id: 3,
+        name: "มอสซาเรลล่าชีส",
         quantity: 2,
-        price: 10.0,
-        basePrice: 10.0,
-        modifiers: [],
-        notes: "",
-        imageUrl: "",
-        menuId: "",
-        status: "completed",
+        price_per_item: 10.0,
+        note: "",
+        image_url: "",
       },
       {
-        id: "4",
-        title: "เนื้อเสือร้องไห้",
+        menu_id: 4,
+        name: "เนื้อเสือร้องไห้",
         quantity: 2,
-        price: 60.0,
-        basePrice: 60.0,
-        modifiers: [],
-        notes: "",
-        imageUrl: "",
-        menuId: "",
-        status: "canceled",
+        price_per_item: 60.0,
+        note: "",
+        image_url: "",
       },
     ],
-    totalPrice: 220.0,
-    timestamp: "19:25",
   },
 ];
 
@@ -138,11 +124,17 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
 
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[var(--primary-orange-main)] font-bold text-xl md:text-lg">
-                    ฿ {orderGroup.totalPrice.toFixed(2)}
+                    ฿{" "}
+                    {orderGroup.items
+                      .reduce(
+                        (acc, item) => acc + item.price_per_item * item.quantity,
+                        0
+                      )
+                      .toFixed(2)}
                   </span>
                   <div className="flex items-center gap-1.5 text-gray-500 md:text-[var(--primary-orange-main)] text-sm font-medium mt-1">
                     <Clock size={16} />
-                    <span>{orderGroup.timestamp}</span>
+                    <span>{orderGroup.create_time}</span>
                   </div>
                 </div>
               </div>

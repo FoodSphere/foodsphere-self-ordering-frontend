@@ -2,42 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, QrCode, Banknote, ChevronRight, Ticket } from "lucide-react";
-import { useCart, CartItem } from "@/app/context/CartContext";
+import { ChevronLeft, QrCode, Banknote, ChevronRight } from "lucide-react";
 
 type PaymentMethod = "QR" | "CASH";
 
+const completedItems = [
+  {
+    id: 1,
+    title: "Spaghetti",
+    price: 10,
+    quantity: 2,
+    note: "No garlic",
+  },
+];
+
 const PaymentRender = () => {
-  const { placedOrders } = useCart(); // Use placedOrders
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("QR");
-
-  // Filter for completed orders
-  const completedOrders = placedOrders; //.filter((o) => o.status === "completed");
-
-  // Aggregate items from all completed orders for display
-  const rawItems = completedOrders.flatMap((o) => o.items);
-
-  // Group identical items
-  const groupedItemsMap = new Map<string, CartItem>();
-
-  rawItems.forEach((item) => {
-    // Creating a unique key for grouping: menuId (or id) + modifiers + notes
-    // Sorting modifiers to ensure consistent key if order changes (though usually list order is stable enough)
-    const modifiersKey = JSON.stringify(item.modifiers || []);
-    const key = `${item.menuId || item.id}-${modifiersKey}-${item.notes || ""}`;
-
-    if (groupedItemsMap.has(key)) {
-      const existing = groupedItemsMap.get(key)!;
-      groupedItemsMap.set(key, {
-        ...existing,
-        quantity: existing.quantity + item.quantity,
-      });
-    } else {
-      groupedItemsMap.set(key, { ...item });
-    }
-  });
-
-  const completedItems = Array.from(groupedItemsMap.values());
 
   // Calculate totals for food (only completed items)
   const foodTotalItems = completedItems.reduce(
@@ -95,7 +75,7 @@ const PaymentRender = () => {
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pb-4">
             {/* My Basket Section */}
             <section className="bg-white mt-2 px-4 py-4">
-              <h2 className="text-lg font-bold mb-4 text-black">My Basket</h2>
+              <h2 className="text-lg font-bold mb-4 text-black">My Order</h2>
 
               <div className="space-y-6">
                 {completedItems.map((item, idx) => (
@@ -117,14 +97,9 @@ const PaymentRender = () => {
                         <span className="text-base text-black font-medium leading-tight">
                           {item.title}
                         </span>
-                        {/* Modifiers / Notes */}
+                        {/* Notes */}
                         <span className="text-xs text-gray-400 mt-1">
-                          {[
-                            ...(item.modifiers?.map((m) => m.name) || []),
-                            item.notes,
-                          ]
-                            .filter(Boolean)
-                            .join(", ")}
+                          {item.note}
                         </span>
                       </div>
                     </div>
