@@ -17,16 +17,16 @@ const CartItemCard = ({
 }: CartItemCardProps) => {
   return (
     <div
-      key={`${item.menuId}-${item.notes}`}
+      key={`${item.menu_id}-${item.note}`}
       className="bg-white p-3 rounded-xl shadow-sm flex gap-3 items-center active:bg-gray-50 transition-colors cursor-pointer flex-shrink-0"
       onClick={() => handleCartItemClick(item)}
     >
       {/* Image */}
       <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-        {item.imageUrl ? (
+        {item.image_url ? (
           <Image
-            src={item.imageUrl}
-            alt={item.title}
+            src={item.image_url}
+            alt={item.name}
             fill
             className="object-cover"
           />
@@ -41,7 +41,7 @@ const CartItemCard = ({
       <div className="flex-1 flex flex-col justify-between h-20 py-1">
         <div className="flex justify-between items-start">
           <p className="font-semibold text-gray-800 line-clamp-1 text-xl">
-            {item.title}
+            {item.name}
           </p>
           <div className="flex gap-4">
             <button
@@ -53,7 +53,7 @@ const CartItemCard = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                removeFromCart(item.menuId, item.notes);
+                removeFromCart(item.menu_id, item.note);
               }}
               className="text-gray-400 hover:text-red-500 cursor-pointer"
             >
@@ -64,7 +64,7 @@ const CartItemCard = ({
 
         <div className="p-0 m-0">
           <span className="text-sm text-gray-500">
-            {item.notes}
+            {item.note}
           </span>
         </div>
 
@@ -77,7 +77,7 @@ const CartItemCard = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                updateQuantity(item.menuId, item.notes, -1);
+                updateQuantity(item.menu_id, item.note, -1);
               }}
               className="w-6 h-6 flex items-center justify-center rounded-full bg-white text-[var(--primary-orange-main)] shadow-sm active:scale-95"
               disabled={item.quantity <= 1}
@@ -90,7 +90,7 @@ const CartItemCard = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                updateQuantity(item.menuId, item.notes, 1);
+                updateQuantity(item.menu_id, item.note, 1);
               }}
               className="w-6 h-6 flex items-center justify-center rounded-full bg-[var(--primary-orange-main)] text-white shadow-sm active:scale-95"
             >

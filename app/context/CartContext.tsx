@@ -1,9 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { apiPost } from "@/services/common";
-import { OrderGroupRequest } from "@/types/orderType";
+import { apiPatch, apiPost } from "@/services/common";
+import { OrderGroupRequest, OrderPatchRequest } from "@/types/orderType";
 import { CartItem } from "@/types/cartType";
+import { EHttpStatusCode } from "@/types/enum";
+import { toast } from "../components/ui/toast/use-toast";
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -34,6 +36,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         setCartItems(JSON.parse(savedCart));
       } catch (e) {
         console.error("Failed to parse cart items", e);
+        toast({
+          variant: "error",
+          description: "Failed to parse cart items",
+        });
       }
     }
   }, []);
@@ -48,7 +54,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   ) => {
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
-        (i) => i.menuId === item.menuId && i.notes === item.notes
+        (i) => i.menu_id === item.menu_id && i.note === item.note
       );
 
       if (existingIndex > -1) {
@@ -63,7 +69,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         {
           ...item,
           quantity: item.quantity || 1,
-          menuId: item.menuId,
+          menu_id: item.menu_id,
         },
       ];
     });
@@ -71,7 +77,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const removeFromCart = (id: number, note: string | null = null) => {
     setCartItems((prev) =>
-      prev.filter((item) => item.menuId !== id && item.notes !== note)
+      prev.filter((item) => !(item.menu_id === id && item.note === note))
     );
   };
 
@@ -83,7 +89,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCartItems((prev) => {
       return prev
         .map((item) => {
-          if (item.menuId === id && item.notes === note) {
+          if (item.menu_id === id && item.note === note) {
             const newQuantity = Math.max(0, item.quantity + delta);
             return { ...item, quantity: newQuantity };
           }
@@ -100,7 +106,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   ) => {
     setCartItems((prev) =>
       prev.map((item) =>
-        item.menuId === id && item.notes === note
+        item.menu_id === id && item.note === note
           ? { ...item, ...updates }
           : item
       )
@@ -114,18 +120,25 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const placeOrder = async () => {
     if (cartItems.length === 0) return;
 
-    const newOrderGroup: OrderGroupRequest = {
-      items: cartItems.map((item) => ({
-        menu_id: item.menuId,
-        quantity: item.quantity,
-        note: item.notes,
-      })),
-    };
+    const newOrderGroups: OrderPatchRequest[] = cartItems.map((item) => ({
+      path: "/-",
+      op: "add",
+      value: {
+        items: [
+          {
+            id: item.id,
+            menu_id: item.menu_id,
+            quantity: item.quantity,
+            note: item.note,
+          },
+        ],
+      },
+    }));
 
-    const response = await apiPost("/orders", newOrderGroup);
-    const data = response.statusCode;
+    const response = await apiPatch("/orders", newOrderGroups);
+    const status = response?.statusCode;
 
-    if (data === 201) {
+    if (status === EHttpStatusCode.SUCCESS) {
       clearCart();
     }
   };

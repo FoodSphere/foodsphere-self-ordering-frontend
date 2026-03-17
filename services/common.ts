@@ -1,9 +1,7 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-
-import { getCookie } from "@/libs/cookie";
-
+// import { signOut } from "next-auth/react";
+import { clearCookie, getCookie } from "@/libs/cookie";
 import { useGlobalStore } from "../store/globalStore";
 import { EHttpStatusCode } from "../types/enum";
 
@@ -11,6 +9,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL || "";
 
 const handleResponse = async (res: Response) => {
   try {
+    if (res.status === 204) {
+      return {
+        statusCode: 204,
+        message: { th: "Deleted", en: "Deleted" },
+        data: null,
+      };
+    }
+
     const contentType = res.headers.get("content-type");
 
     if (contentType && contentType.includes("application/json")) {
@@ -52,10 +58,15 @@ export const apiGet = async (path: string, query?: string) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
-      await signOut();
-      window.location.href = "/not-found";
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
 
@@ -78,9 +89,16 @@ export const apiGetNoLoading = async (path: string, query?: string) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
-      await signOut();
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
+      return;
     }
     return await handleResponse(res);
   } catch (error) {
@@ -116,7 +134,13 @@ export const apiPost = async (path: string, payload?: any) => {
       res.status === EHttpStatusCode.INVALID_TOKEN ||
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
-      await signOut();
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
+      return;
     }
     return await handleResponse(res);
   } catch (error) {
@@ -153,9 +177,15 @@ export const apiPut = async (path: string, payload?: any) => {
       res.status === EHttpStatusCode.INVALID_TOKEN ||
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
-      await signOut();
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
+      return;
     }
-    return await handleResponse(res);
+    return;
   } catch (error) {
     console.log("error :", error);
     throw new Error(JSON.stringify(error, null, 2));
@@ -182,7 +212,7 @@ export const apiPatch = async (
         body = payload;
       } else {
         body = JSON.stringify(payload);
-        headers["Content-Type"] = "application/json";
+        headers["Content-Type"] = "application/json-patch+json";
       }
     }
     const res = await fetch(`${API_BASE_URL as string}${path}`, {
@@ -195,7 +225,13 @@ export const apiPatch = async (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
-      await signOut();
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
+      return;
     }
     return await handleResponse(res);
   } catch (error) {
@@ -222,7 +258,13 @@ export const apiDelete = async (path: string) => {
       res.status === EHttpStatusCode.INVALID_TOKEN ||
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
-      await signOut();
+      // await signOut();
+      clearCookie("accessToken");
+      const pathname = window.location.pathname;
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
+      return;
     }
     return await handleResponse(res);
   } catch (error) {

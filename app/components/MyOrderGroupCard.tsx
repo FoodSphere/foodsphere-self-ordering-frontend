@@ -1,18 +1,28 @@
 import { useState } from "react";
 import { OrderGroupWithMenuMapping, OrderMenuItem } from "@/types/orderType";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { EOrderStatus } from "@/types/enum";
 
 interface MyOrderItemCardProps {
+  orderStatus: EOrderStatus;
   myOrderItem: OrderMenuItem;
+  editOrderItem: (item: OrderMenuItem) => void;
+  cancelOrderItem: (menuId: number, notes: string | null) => void;
 }
 
 interface MyOrderGroupCardProps {
   orderGroup: OrderGroupWithMenuMapping;
+  handleEditOrderItem: (orderGroupId: number, item: OrderMenuItem) => void;
+  handleCancelOrderItem: (menuId: number, notes: string | null) => void;
 }
 
-const MyOrderItemCard = ({ myOrderItem }: MyOrderItemCardProps) => {
+const MyOrderItemCard = ({
+  orderStatus,
+  myOrderItem,
+  editOrderItem,
+  cancelOrderItem,
+}: MyOrderItemCardProps) => {
   return (
     <div
       key={`${myOrderItem.menu_id}-${myOrderItem.note}`}
@@ -40,6 +50,27 @@ const MyOrderItemCard = ({ myOrderItem }: MyOrderItemCardProps) => {
           <p className="font-semibold text-gray-800 line-clamp-1 text-xl">
             {myOrderItem.name}
           </p>
+          <div className="flex gap-4">
+            <button
+              hidden={![EOrderStatus.PENDING].includes(orderStatus)}
+              onClick={() => {
+                editOrderItem(myOrderItem);
+              }}
+              className="text-gray-400 hover:text-[var(--primary-orange-main)] cursor-pointer"
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              hidden={![EOrderStatus.PENDING].includes(orderStatus)}
+              onClick={(e) => {
+                e.stopPropagation();
+                cancelOrderItem(myOrderItem.menu_id, myOrderItem.note);
+              }}
+              className="text-gray-400 hover:text-red-500 cursor-pointer"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-0 m-0">
@@ -48,7 +79,7 @@ const MyOrderItemCard = ({ myOrderItem }: MyOrderItemCardProps) => {
 
         <div className="flex justify-between items-end">
           <span className="font-bold text-[var(--primary-orange-main)]">
-            ฿{(myOrderItem.price_per_item * myOrderItem.quantity).toFixed(2)}
+            ฿{(myOrderItem.price * myOrderItem.quantity).toFixed(2)}
           </span>
 
           <div className="flex items-center gap-3 bg-gray-50 rounded-full px-1 border border-gray-100">
@@ -62,13 +93,21 @@ const MyOrderItemCard = ({ myOrderItem }: MyOrderItemCardProps) => {
   );
 };
 
-const MyOrderGroupCard = ({ orderGroup }: MyOrderGroupCardProps) => {
+const MyOrderGroupCard = ({
+  orderGroup,
+  handleEditOrderItem,
+  handleCancelOrderItem,
+}: MyOrderGroupCardProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const getStatusBadge = (status: EOrderStatus) => {
     switch (status) {
+      case EOrderStatus.DRAFT:
+        return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1";
       case EOrderStatus.PENDING:
         return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1";
+      case EOrderStatus.COOKING:
+        return "text-blue-500 bg-blue-100 rounded-full px-2 py-1";
       case EOrderStatus.COMPLETED:
         return "text-green-500 bg-green-100 rounded-full px-2 py-1";
       case EOrderStatus.CANCELLED:
@@ -80,6 +119,8 @@ const MyOrderGroupCard = ({ orderGroup }: MyOrderGroupCardProps) => {
 
   const getStatusText = (status: EOrderStatus) => {
     switch (status) {
+      case EOrderStatus.DRAFT:
+        return "Pending";
       case EOrderStatus.PENDING:
         return "Pending";
       case EOrderStatus.COOKING:
@@ -104,24 +145,23 @@ const MyOrderGroupCard = ({ orderGroup }: MyOrderGroupCardProps) => {
           <span className={`text-sm ${getStatusBadge(orderGroup.status)}`}>
             {getStatusText(orderGroup.status)}
           </span>
-          <ChevronUp
-            className={`transition-transform duration-200 ${
-              isExpanded ? "rotate-180" : ""
-            }`}
-          />
         </div>
       </div>
-
-      {isExpanded && (
-        <div className="">
-          {orderGroup.items.map((order: OrderMenuItem) => (
+      <div className="">
+        {orderGroup.items && orderGroup.items.length > 0 ? (
+          orderGroup.items.map((order: OrderMenuItem) => (
             <MyOrderItemCard
               key={`${order.menu_id}-${order.note}`}
+              orderStatus={orderGroup.status}
               myOrderItem={order}
+              editOrderItem={(item) => handleEditOrderItem(orderGroup.id, item)}
+              cancelOrderItem={handleCancelOrderItem}
             />
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="text-center text-gray-500">No items</div>
+        )}
+      </div>
     </div>
   );
 };

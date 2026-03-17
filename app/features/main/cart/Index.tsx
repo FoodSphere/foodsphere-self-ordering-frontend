@@ -8,6 +8,7 @@ import OrderHistoryModal from "@/app/components/OrderHistoryModal";
 import CartItemCard from "@/app/components/CartItemCard";
 import { useCart } from "@/app/context/CartContext";
 import { CartItem } from "@/types/cartType";
+import { OrderMenuItem } from "@/types/orderType";
 
 const CartRender = () => {
   const {
@@ -19,7 +20,7 @@ const CartRender = () => {
     clearCart,
     placeOrder,
   } = useCart();
-  
+
   const [selectedItem, setSelectedItem] = useState<CartItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -30,14 +31,14 @@ const CartRender = () => {
   };
 
   const handleUpdateItem = (
-    item: CartItem,
+    item: CartItem | OrderMenuItem,
     quantity: number,
-    notes: string | null = null,
+    note: string | null = null,
   ) => {
     // Update the item in the cart
-    updateCartItem(item.menuId, notes, {
+    updateCartItem(item.menu_id, note, {
       quantity,
-      notes,
+      note,
     });
     setIsModalOpen(false);
   };
@@ -76,7 +77,7 @@ const CartRender = () => {
       <main className="flex-1 px-4 pt-4 flex flex-col gap-4 overflow-hidden">
         {cartItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-            <p className="text-lg font-medium">Your cart is empty</p>
+            <p className="text-lg font-medium">Your cart is empty.</p>
             <Link
               href="/menu"
               className="text-[var(--primary-orange-main)] font-semibold hover:underline"
@@ -88,7 +89,7 @@ const CartRender = () => {
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pb-4">
             {cartItems.map((item) => (
               <CartItemCard
-                key={`${item.menuId}-${item.notes}`}
+                key={`${item.menu_id}-${item.note}`}
                 item={item}
                 handleCartItemClick={handleCartItemClick}
                 removeFromCart={removeFromCart}
@@ -124,6 +125,7 @@ const CartRender = () => {
       )}
 
       <OrderCustomizationModal
+        orderGroupId={0} // 0 is a placeholder for cart items
         item={selectedItem}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

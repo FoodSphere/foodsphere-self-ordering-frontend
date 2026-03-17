@@ -20,7 +20,7 @@ const MenuItemCard = ({
   const { cartItems } = useCart();
 
   const totalQuantity = cartItems
-    .filter((item) => item.menuId === id)
+    .filter((item) => item.menu_id === id)
     .reduce((acc, item) => acc + item.quantity, 0);
 
   const handleAdd = (e: React.MouseEvent) => {

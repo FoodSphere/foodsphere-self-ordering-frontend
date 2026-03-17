@@ -3,11 +3,12 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/libs/utils";
 import { useRef } from "react";
+import { EOrderStatusString } from "@/types/enum";
 
 interface OrderStatusTabsProps {
-  orderStatus: string[];
-  activeOrderStatus: string;
-  onSelectOrderStatus: (orderStatus: string) => void;
+  orderStatus: EOrderStatusString[];
+  activeOrderStatus: EOrderStatusString;
+  onSelectOrderStatus: (orderStatus: EOrderStatusString) => void;
 }
 
 const OrderStatusTabs = ({

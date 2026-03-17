@@ -1,9 +1,13 @@
+import { componentMappedMenu } from "./menuType";
+
 export interface CartItem {
-  menuId: number;
-  title: string;
+  id: number;
+  menu_id: number;
+  name: string;
   description: string;
   price: number;
-  imageUrl?: string;
+  image_url: string | null;
   quantity: number;
-  notes: string | null;
+  note: string | null;
+  components: componentMappedMenu[];
 }

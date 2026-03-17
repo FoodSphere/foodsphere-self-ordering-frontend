@@ -1,59 +1,39 @@
 "use client";
 
-import { EOrderStatus } from "@/types/enum";
-import { OrderGroupWithMenuMapping } from "@/types/orderType";
+import { useState, useMemo, useEffect } from "react";
 import { X, Clock } from "lucide-react";
+import { useMenu } from "@/app/context/MenuContext";
+import { OrderGroupResponse, OrderGroupWithMenuMapping } from "@/types/orderType";
+import { apiGet } from "@/services/common";
 
 interface OrderHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Mock Data based on the provided image
-const orderHistoryData: OrderGroupWithMenuMapping[] = [
-  {
-    id: 1,
-    create_time: "2022-01-01T00:00:00.000Z",
-    update_time: "2022-01-01T00:00:00.000Z",
-    status: EOrderStatus.PENDING,
-    items: [
-      {
-        menu_id: 1,
-        name: "เนื้อปลากะพง",
-        quantity: 3,
-        price_per_item: 80.0,
-        note: "",
-        image_url: "",
-      },
-      {
-        menu_id: 2,
-        name: "ไข่ปลาหมึก",
-        quantity: 2,
-        price_per_item: 60.0,
-        note: "",
-        image_url: "",
-      },
-      {
-        menu_id: 3,
-        name: "มอสซาเรลล่าชีส",
-        quantity: 2,
-        price_per_item: 10.0,
-        note: "",
-        image_url: "",
-      },
-      {
-        menu_id: 4,
-        name: "เนื้อเสือร้องไห้",
-        quantity: 2,
-        price_per_item: 60.0,
-        note: "",
-        image_url: "",
-      },
-    ],
-  },
-];
-
 const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
+  const { mapOrderItemsToOrderMenuItems } = useMenu();
+  const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+
+  const myOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
+      return rawOrders.map((order: OrderGroupResponse) => ({
+        id: order.id,
+        items: mapOrderItemsToOrderMenuItems(order.items),
+        status: order.status,
+        create_time: order.create_time,
+        update_time: order.update_time,
+      }));
+    }, [rawOrders, mapOrderItemsToOrderMenuItems]);
+  
+    const fetchOrders = async () => {
+      const response = await apiGet("/orders");
+      setRawOrders(response?.data ?? []);
+    };
+  
+    useEffect(() => {
+      fetchOrders();
+    }, []);
+  
   if (!isOpen) return null;
 
   return (
@@ -75,20 +55,20 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
 
         {/* List */}
         <div className="flex-grow md:max-h-100 overflow-y-auto flex-1 p-0 bg-white">
-          {orderHistoryData.map((orderGroup) => (
+          {myOrders.map((order: OrderGroupWithMenuMapping) => (
             <div
-              key={orderGroup.id}
+              key={order.id}
               className="p-5 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
             >
               <div className="flex justify-between items-start mb-1 gap-4">
                 <div className="flex gap-4 flex-1">
                   <div className="flex-1">
                     <h3 className="font-bold text-black text-xl md:text-lg leading-tight mb-2">
-                      Order ID: {orderGroup.id}
+                      Order ID: {order.id}
                     </h3>
-                    {orderGroup.items.length > 0 && (
+                    {order.items.length > 0 && (
                       <div className="flex flex-col text-gray-600 text-base md:text-sm space-y-1">
-                        {orderGroup.items.map((item: any, idx: number) => {
+                        {order.items.map((item: any, idx: number) => {
                           const getStatusColor = (status: string) => {
                             switch (status) {
                               case "cooking":
@@ -125,16 +105,16 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[var(--primary-orange-main)] font-bold text-xl md:text-lg">
                     ฿{" "}
-                    {orderGroup.items
+                    {order.items
                       .reduce(
-                        (acc, item) => acc + item.price_per_item * item.quantity,
+                        (acc, item) => acc + item.price * item.quantity,
                         0
                       )
                       .toFixed(2)}
                   </span>
                   <div className="flex items-center gap-1.5 text-gray-500 md:text-[var(--primary-orange-main)] text-sm font-medium mt-1">
                     <Clock size={16} />
-                    <span>{orderGroup.create_time}</span>
+                    <span>{order.create_time}</span>
                   </div>
                 </div>
               </div>
