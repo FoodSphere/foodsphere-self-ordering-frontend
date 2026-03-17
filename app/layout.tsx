@@ -9,11 +9,12 @@ const notoSanThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "FOODSHPERE - Self-Ordering Platform",
+  title: "FOODSPHERE - Ordering",
   description: "FOODSPHERE self-ordering frontend project.",
 };
 
 import { CartProvider } from "@/app/context/CartContext";
+import { MenuProvider } from "@/app/context/MenuContext";
 
 export default function RootLayout({
   children,
@@ -22,11 +23,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>{/* <link rel="icon" href="/icons/sahapanLogo01.svg" /> */}</head>
+      <head>
+        <link
+          rel="icon"
+          href="https://storage.ensigame.com/logos/teams/be384481caba4964ce41eda884e4ad24.png"
+        />
+      </head>
       <body className={`${notoSanThai.className}`}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <MenuProvider>
+          <CartProvider>{children}</CartProvider>
+        </MenuProvider>
       </body>
     </html>
   );

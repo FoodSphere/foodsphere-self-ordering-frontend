@@ -1,41 +1,51 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Minus, Plus } from "lucide-react";
-import { CartItem } from "@/app/context/CartContext";
+import { CartItem } from "@/types/cartType";
+import { OrderMenuItem } from "@/types/orderType";
+import { componentMappedMenu } from "@/types/menuType";
+
+const ComponentMenuCard = ({
+  component,
+}: {
+  component: componentMappedMenu;
+}) => {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {component.image_url ? (
+          <Image
+            src={component.image_url}
+            alt={component.name}
+            width={50}
+            height={50}
+            className="rounded-lg"
+          />
+        ) : (
+          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+            <span className="text-gray-400 text-xs">No Image</span>
+          </div>
+        )}
+        <span className="font-semibold">{component.name}</span>
+      </div>
+      <span className="font-semibold">x{component.quantity}</span>
+    </div>
+  );
+};
 
 interface OrderCustomizationModalProps {
-  item: CartItem | null;
+  orderGroupId: number | null;
+  item: CartItem | OrderMenuItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (
-    item: CartItem,
-    quantity: number,
-    notes: string,
-    modifiers: { name: string; price: number }[]
-  ) => void;
+  onConfirm: ((item: CartItem | OrderMenuItem, quantity: number, notes: string | null, orderGroupId: number) => void);
   mode: "add" | "edit";
 }
 
-const MOCK_OPTIONS = [
-  {
-    title: "Extra Size",
-    maxSelect: 1,
-    options: [{ name: "Extra Size", price: 10 }],
-  },
-  {
-    title: "Topping",
-    maxSelect: 4, // allow multiple
-    options: [
-      { name: "Fried Egg", price: 10 },
-      { name: "Omelette", price: 10 },
-      { name: "Boiled Egg", price: 10 },
-    ],
-  },
-];
-
 const OrderCustomizationModal = ({
+  orderGroupId,
   item,
   isOpen,
   onClose,
@@ -43,42 +53,33 @@ const OrderCustomizationModal = ({
   mode,
 }: OrderCustomizationModalProps) => {
   const [quantity, setQuantity] = useState(1);
-  const [notes, setNotes] = useState("");
-  const [selectedModifiers, setSelectedModifiers] = useState<
-    { name: string; price: number }[]
-  >([]);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && item) {
       setQuantity(mode === "edit" ? item.quantity : 1);
-      setNotes(item.notes || "");
-      setSelectedModifiers(item.modifiers || []);
+      setNote(item.note || null);
     }
   }, [isOpen, item, mode]);
 
   if (!isOpen || !item) return null;
 
-  const handleModifierToggle = (modifier: { name: string; price: number }) => {
-    setSelectedModifiers((prev) => {
-      const exists = prev.find((m) => m.name === modifier.name);
-      if (exists) {
-        return prev.filter((m) => m.name !== modifier.name);
-      } else {
-        return [...prev, modifier];
-      }
-    });
-  };
-
   const calculateTotalPrice = () => {
-    const modifiersPrice = selectedModifiers.reduce(
-      (sum, m) => sum + m.price,
-      0
-    );
-    return (item.basePrice + modifiersPrice) * quantity;
+    return item.price * quantity;
   };
 
   const handleConfirm = () => {
-    onConfirm(item, quantity, notes, selectedModifiers);
+    if (mode === "edit") {
+      if (!orderGroupId) {
+        throw new Error("Order group ID is required for edit mode");
+      }
+      onConfirm(item, quantity, note, orderGroupId);
+    } else if (mode === "add") {
+      onConfirm(item, quantity, note, 0); // 0 is a placeholder for cart items
+    } else {
+      throw new Error("Invalid mode or callback function is not defined");
+    }
+
     onClose();
   };
 
@@ -87,10 +88,10 @@ const OrderCustomizationModal = ({
       <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
         {/* Header Image */}
         <div className="relative h-48 w-full shrink-0">
-          {item.imageUrl ? (
+          {item.image_url ? (
             <Image
-              src={item.imageUrl}
-              alt={item.title}
+              src={item.image_url}
+              alt={item.name}
               fill
               className="object-cover"
             />
@@ -111,82 +112,34 @@ const OrderCustomizationModal = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Title & Desc */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{item.title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{item.name}</h2>
             <p className="text-gray-500 text-sm mt-1">
-              Crispy pork yummy yummy!!!
+              {item.description}
             </p>
           </div>
 
-          <div className="h-px bg-gray-100" />
-
-          {/* Options */}
-          {MOCK_OPTIONS.map((group, idx) => (
-            <div key={idx} className="space-y-3">
-              <div className="flex justify-between items-end">
-                <h3 className="font-bold text-lg text-gray-800">
-                  {group.title}
-                </h3>
-                <span className="text-xs text-gray-400">
-                  Select up to {group.maxSelect} option
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {group.options.map((opt) => {
-                  const isSelected = selectedModifiers.some(
-                    (m) => m.name === opt.name
-                  );
-                  return (
-                    <label
-                      key={opt.name}
-                      className="flex items-center justify-between cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${
-                            isSelected
-                              ? "bg-[var(--primary-orange-main)] border-[var(--primary-orange-main)]"
-                              : "border-gray-300 group-hover:border-[var(--primary-orange-main)]"
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="w-2.5 h-2.5 bg-white rounded-sm" />
-                          )}
-                        </div>
-                        <span
-                          className={`text-base ${
-                            isSelected
-                              ? "text-gray-800 font-medium"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {opt.name}
-                        </span>
-                      </div>
-                      <span className="text-gray-400">฿ {opt.price}</span>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={isSelected}
-                        onChange={() => handleModifierToggle(opt)}
-                      />
-                    </label>
-                  );
-                })}
-              </div>
+          <div className="h-px bg-gray-100 mb-0" />
+          
+          {/* Components */}
+          {item.components && item.components.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-bold text-lg text-gray-800">Components</h3>
+              {item.components.map((component) => (
+                <div key={component.menu_id} className="space-y-3 border border-gray-200 rounded-xl p-3">
+                  <ComponentMenuCard component={component} />
             </div>
           ))}
+          </div>
+          )}
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 mb-0" />
 
           {/* Notes */}
           <div className="space-y-3">
-            <h3 className="font-bold text-lg text-gray-800">
-              Additional Request
-            </h3>
+            <h3 className="font-bold text-lg text-gray-800">Notes</h3>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={note || ""}
+              onChange={(e) => setNote(e.target.value)}
               placeholder="E.g. No veggies"
               className="w-full border border-gray-200 rounded-xl p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--primary-orange-main)]/50 focus:border-[var(--primary-orange-main)] resize-none h-24"
             />

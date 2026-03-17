@@ -1,61 +1,39 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import { X, Clock } from "lucide-react";
+import { useMenu } from "@/app/context/MenuContext";
+import { OrderGroupResponse, OrderGroupWithMenuMapping } from "@/types/orderType";
+import { apiGet } from "@/services/common";
 
 interface OrderHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Mock Data based on the provided image
-const orderHistoryData = [
-  {
-    id: 1,
-    quantity: 1,
-    name: "Shabu Standard",
-    items: [
-      "3x เนื้อปลากะพง",
-      "2x ไข่ปลาหมึก",
-      "2x มอสซาเรลล่าชีส",
-      "2x เนื้อเสือร้องไห้",
-    ],
-    price: 0.0,
-    time: "19:25",
-  },
-  {
-    id: 2,
-    quantity: 1,
-    name: "Shabu Standard",
-    items: [
-      "1x สันคอหมู",
-      "1x หมูเด้งชีส",
-      "1x คุโรบูตะชีส",
-      "1x เนื้อ Us ชอตเพลต",
-      "1x เนื้อแองกัส",
-      "1x หมูนุ่มตอกไข่",
-    ],
-    price: 0.0,
-    time: "19:18",
-  },
-  {
-    id: 3,
-    quantity: 1,
-    name: "Shabu Standard",
-    items: ["1x สันคอหมู", "1x หมูเด้งชีส"],
-    price: 0.0,
-    time: "19:13",
-  },
-  {
-    id: 4,
-    quantity: 1,
-    name: "Shabu Standard",
-    items: ["1x สันคอหมู", "1x หมูเด้งชีส"],
-    price: 0.0,
-    time: "19:13",
-  },
-];
-
 const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
+  const { mapOrderItemsToOrderMenuItems } = useMenu();
+  const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+
+  const myOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
+      return rawOrders.map((order: OrderGroupResponse) => ({
+        id: order.id,
+        items: mapOrderItemsToOrderMenuItems(order.items),
+        status: order.status,
+        create_time: order.create_time,
+        update_time: order.update_time,
+      }));
+    }, [rawOrders, mapOrderItemsToOrderMenuItems]);
+  
+    const fetchOrders = async () => {
+      const response = await apiGet("/orders");
+      setRawOrders(response?.data ?? []);
+    };
+  
+    useEffect(() => {
+      fetchOrders();
+    }, []);
+  
   if (!isOpen) return null;
 
   return (
@@ -77,25 +55,48 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
 
         {/* List */}
         <div className="flex-grow md:max-h-100 overflow-y-auto flex-1 p-0 bg-white">
-          {orderHistoryData.map((order) => (
+          {myOrders.map((order: OrderGroupWithMenuMapping) => (
             <div
               key={order.id}
               className="p-5 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
             >
               <div className="flex justify-between items-start mb-1 gap-4">
                 <div className="flex gap-4 flex-1">
-                  <span className="text-[var(--primary-orange-main)] font-bold text-xl md:text-lg min-w-[2rem] md:min-w-[1.5rem] mt-0.5">
-                    {order.quantity}x
-                  </span>
                   <div className="flex-1">
                     <h3 className="font-bold text-black text-xl md:text-lg leading-tight mb-2">
-                      {order.name}
+                      Order ID: {order.id}
                     </h3>
                     {order.items.length > 0 && (
                       <div className="flex flex-col text-gray-600 text-base md:text-sm space-y-1">
-                        {order.items.map((item, idx) => (
-                          <span key={idx}>- {item}</span>
-                        ))}
+                        {order.items.map((item: any, idx: number) => {
+                          const getStatusColor = (status: string) => {
+                            switch (status) {
+                              case "cooking":
+                                return "text-blue-500";
+                              case "completed":
+                                return "text-green-500";
+                              case "canceled":
+                                return "text-red-500";
+                              default:
+                                return "text-gray-500";
+                            }
+                          };
+
+                          return (
+                            <div key={idx}>
+                              <p key={idx}>
+                                - x{item.quantity} {item.title}{" "}
+                                <span
+                                  className={`font-semibold ${getStatusColor(
+                                    item.status
+                                  )}`}
+                                >
+                                  ({item.status})
+                                </span>
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -103,11 +104,17 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
 
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[var(--primary-orange-main)] font-bold text-xl md:text-lg">
-                    ฿ {order.price.toFixed(2)}
+                    ฿{" "}
+                    {order.items
+                      .reduce(
+                        (acc, item) => acc + item.price * item.quantity,
+                        0
+                      )
+                      .toFixed(2)}
                   </span>
                   <div className="flex items-center gap-1.5 text-gray-500 md:text-[var(--primary-orange-main)] text-sm font-medium mt-1">
                     <Clock size={16} />
-                    <span>{order.time}</span>
+                    <span>{order.create_time}</span>
                   </div>
                 </div>
               </div>

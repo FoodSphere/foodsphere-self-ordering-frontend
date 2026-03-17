@@ -3,8 +3,8 @@ import { Plus } from "lucide-react";
 import { useCart } from "@/app/context/CartContext";
 
 interface MenuItemProps {
-  id: string;
-  title: string;
+  id: number;
+  name: string;
   price: number;
   imageUrl?: string;
   onClick?: () => void;
@@ -12,7 +12,7 @@ interface MenuItemProps {
 
 const MenuItemCard = ({
   id,
-  title,
+  name,
   price,
   imageUrl,
   onClick,
@@ -20,7 +20,7 @@ const MenuItemCard = ({
   const { cartItems } = useCart();
 
   const totalQuantity = cartItems
-    .filter((item) => item.menuId === id || item.id === id) // Check both for robustness
+    .filter((item) => item.menu_id === id)
     .reduce((acc, item) => acc + item.quantity, 0);
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -35,7 +35,7 @@ const MenuItemCard = ({
     >
       <div className="relative aspect-square w-full bg-gray-100">
         {imageUrl ? (
-          <Image src={imageUrl} alt={title} fill className="object-cover" />
+          <Image src={imageUrl} alt={name} fill className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             No Image
@@ -52,7 +52,7 @@ const MenuItemCard = ({
 
       <div className="p-3 flex flex-col">
         <h3 className="text-base text-center sm:text-left font-semibold text-gray-900 line-clamp-1">
-          {title}
+          {name}
         </h3>
         <div className="flex sm:flex-row flex-col items-center justify-between mt-1">
           <span className="text-lg font-bold text-[var(--primary-orange-main)]">
