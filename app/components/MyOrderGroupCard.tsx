@@ -1,23 +1,26 @@
 import { useState } from "react";
-import { OrderGroupWithMenuMapping, OrderMenuItem } from "@/types/orderType";
 import { ChevronUp, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
+
 import { EOrderStatus } from "@/types/enum";
+import { OrderGroupWithMenuMapping, OrderMenuItem } from "@/types/orderType";
 
 interface MyOrderItemCardProps {
+  orderGroupId: number;
   orderStatus: EOrderStatus;
   myOrderItem: OrderMenuItem;
   editOrderItem: (item: OrderMenuItem) => void;
-  cancelOrderItem: (menuId: number, notes: string | null) => void;
+  cancelOrderItem: (orderGroupId: number) => void;
 }
 
 interface MyOrderGroupCardProps {
   orderGroup: OrderGroupWithMenuMapping;
   handleEditOrderItem: (orderGroupId: number, item: OrderMenuItem) => void;
-  handleCancelOrderItem: (menuId: number, notes: string | null) => void;
+  handleCancelOrderItem: (orderGroupId: number) => void;
 }
 
 const MyOrderItemCard = ({
+  orderGroupId,
   orderStatus,
   myOrderItem,
   editOrderItem,
@@ -64,7 +67,7 @@ const MyOrderItemCard = ({
               hidden={![EOrderStatus.PENDING].includes(orderStatus)}
               onClick={(e) => {
                 e.stopPropagation();
-                cancelOrderItem(myOrderItem.menu_id, myOrderItem.note);
+                cancelOrderItem(orderGroupId);
               }}
               className="text-gray-400 hover:text-red-500 cursor-pointer"
             >
@@ -152,10 +155,11 @@ const MyOrderGroupCard = ({
           orderGroup.items.map((order: OrderMenuItem) => (
             <MyOrderItemCard
               key={`${order.menu_id}-${order.note}`}
+              orderGroupId={orderGroup.id}
               orderStatus={orderGroup.status}
               myOrderItem={order}
               editOrderItem={(item) => handleEditOrderItem(orderGroup.id, item)}
-              cancelOrderItem={handleCancelOrderItem}
+              cancelOrderItem={() => handleCancelOrderItem(orderGroup.id)}
             />
           ))
         ) : (
