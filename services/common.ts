@@ -58,15 +58,13 @@ export const apiGet = async (path: string, query?: string) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED ||
-      res.status === EHttpStatusCode.NOT_FOUND
+      res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
 
@@ -93,11 +91,10 @@ export const apiGetNoLoading = async (path: string, query?: string) => {
       res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
     return await handleResponse(res);
@@ -135,11 +132,10 @@ export const apiPost = async (path: string, payload?: any) => {
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
     return await handleResponse(res);
@@ -178,11 +174,10 @@ export const apiPut = async (path: string, payload?: any) => {
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
     return;
@@ -226,11 +221,10 @@ export const apiPatch = async (
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
     return await handleResponse(res);
@@ -259,11 +253,10 @@ export const apiDelete = async (path: string) => {
       res.status === EHttpStatusCode.UNAUTHORIZED
     ) {
       // await signOut();
-      clearCookie("accessToken");
       const pathname = window.location.pathname;
-      if (pathname !== "/not-found") {
-        window.location.href = "/not-found";
-      }
+      // if (pathname !== "/not-found") {
+      //   window.location.href = "/not-found";
+      // }
       return;
     }
     return await handleResponse(res);

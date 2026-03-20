@@ -1,5 +1,9 @@
+import { apiGet } from "@/services/common";
+import { EBillStatus } from "@/types/enum";
 import { XCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface PaymentFailedRenderProps {
   title: string;
@@ -14,6 +18,29 @@ const PaymentFailedRender = ({
   buttonText,
   buttonLink,
 }: PaymentFailedRenderProps) => {
+  const router = useRouter();
+
+  const fetchBill = async () => {
+    try {
+      const response = await apiGet(`/bill`);
+      const billData = response?.data ?? null;
+
+      if (billData?.status === EBillStatus.PAID) {
+        console.log("Bill is paid, redirecting to success page");
+        router.push(`/payment/success?bill_id=${billData.id}`);
+      } else if (billData?.status === EBillStatus.COMPLETED) {
+        console.log("Bill is completed, redirecting to thank you page");
+        router.push("/thank-you");
+      }
+    } catch (error) {
+      console.error("Failed to fetch bill:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBill();
+  }, []);
+
   return (
     <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border-t-4 border-red-500">
       <XCircle className="w-20 h-20 text-red-500 mx-auto mb-6" />

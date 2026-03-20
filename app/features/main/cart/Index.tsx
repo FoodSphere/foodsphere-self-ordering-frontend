@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Trash2, History } from "lucide-react";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import OrderHistoryModal from "@/app/components/OrderHistoryModal";
@@ -9,6 +9,10 @@ import CartItemCard from "@/app/components/CartItemCard";
 import { useCart } from "@/app/context/CartContext";
 import { CartItem } from "@/types/cartType";
 import { OrderMenuItem } from "@/types/orderType";
+import { Bill } from "@/types/billType";
+import { apiGet } from "@/services/common";
+import { EBillStatus } from "@/types/enum";
+import { redirect } from "next/navigation";
 
 const CartRender = () => {
   const {
@@ -25,6 +29,8 @@ const CartRender = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
+  const [bill, setBill] = useState<Bill | null>(null);
+
   const handleCartItemClick = (item: CartItem) => {
     setSelectedItem(item);
     setIsModalOpen(true);
@@ -33,7 +39,7 @@ const CartRender = () => {
   const handleUpdateItem = (
     item: CartItem | OrderMenuItem,
     quantity: number,
-    note: string | null = null,
+    note: string | null = null
   ) => {
     // Update the item in the cart
     updateCartItem(item.menu_id, note, {
@@ -42,6 +48,24 @@ const CartRender = () => {
     });
     setIsModalOpen(false);
   };
+
+  const fetchBill = async () => {
+    const response = await apiGet(`/bill`);
+    const billData = response?.data;
+    setBill(billData);
+
+    if (billData?.status === EBillStatus.PAID) {
+      clearCart();
+      return redirect(`/payment/success?bill_id=${billData.id}`);
+    } else if (billData?.status === EBillStatus.COMPLETED) {
+      clearCart();
+      return redirect("/thank-you");
+    }
+  };
+
+  useEffect(() => {
+    fetchBill();
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden pb-20">

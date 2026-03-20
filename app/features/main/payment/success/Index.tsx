@@ -1,19 +1,22 @@
 "use client";
 
-import {
-  StripeVerificationResult,
-  verifyCheckoutSession,
-} from "@/services/stripe";
-import Link from "next/link";
-import { CheckCircle2, ReceiptText } from "lucide-react";
-import { EPaymentMethod, EPaymentStatus } from "@/types/enum";
-import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bill } from "@/types/billType";
-import { apiGet, apiPut } from "@/services/common";
+import { CheckCircle2, ReceiptText } from "lucide-react";
+import { redirect, useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { toast } from "@/app/components/ui/toast/use-toast";
+
 import ConfirmationModal from "@/app/components/ConfirmationModal";
+import { toast } from "@/app/components/ui/toast/use-toast";
+import { apiGet, apiPut } from "@/services/common";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import {
+  EPaymentMethod,
+  EPaymentStatus,
+  EBillStatus,
+} from "@/types/enum";
+import { IPaymentCreateFromSignalR } from "@/types/paymentType";
+import { getCookie } from "@/libs/cookie";
+import * as signalR from "@microsoft/signalr";
 
 function PaymentSuccess({
   status,
@@ -28,6 +31,21 @@ function PaymentSuccess({
   table_name: string;
   onCompleteBill: () => void;
 }) {
+  const getStatusText = (status: EPaymentStatus) => {
+    switch (status) {
+      case EPaymentStatus.PENDING:
+        return "PENDING";
+      case EPaymentStatus.SUCCEEDED:
+        return "PAID";
+      case EPaymentStatus.FAILED:
+        return "FAILED";
+      case EPaymentStatus.REFUNDED:
+        return "REFUNDED";
+      default:
+        return "UNKNOWN";
+    }
+  };
+
   return (
     <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
       <CheckCircle2 className="w-20 h-20 text-green-500 mx-auto relative z-10" />
@@ -44,15 +62,15 @@ function PaymentSuccess({
 
       <div className="bg-gray-50 rounded-xl p-4 mb-8 text-left">
         <div className="flex justify-between mb-2">
-          <span className="text-gray-500 text-sm">Status</span>
-          <span className="text-green-600 text-sm font-bold uppercase">
-            {status}
-          </span>
-        </div>
-        <div className="flex justify-between mb-2">
           <span className="text-gray-500 text-sm">Table</span>
           <span className="text-gray-600 text-sm font-bold uppercase">
             {table_name}
+          </span>
+        </div>
+        <div className="flex justify-between mb-2">
+          <span className="text-gray-500 text-sm">Status</span>
+          <span className="text-green-600 text-sm font-bold uppercase">
+            {getStatusText(status)}
           </span>
         </div>
         <div className="flex justify-between mb-2">
@@ -75,62 +93,94 @@ function PaymentSuccess({
 }
 
 const PaymentSuccessRender = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const session_id = searchParams.get("session_id");
-  const payment_method = searchParams.get("payment_method");
+  const bill_id = searchParams.get("bill_id");
 
+  const [payment, setPayment] = useState<IPaymentCreateFromSignalR | null>(
+    null
+  );
   const [bill, setBill] = useState<Bill | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [stripeResult, setStripeResult] =
-    useState<StripeVerificationResult | null>(null);
   const [showCompleteBillConfirmation, setShowCompleteBillConfirmation] =
     useState<boolean>(false);
 
   const fetchBill = async () => {
     try {
       const response = await apiGet(`/bill`);
-      setBill(response?.data ?? null);
+      const billData = response?.data ?? null;
+      setBill(billData);
+
+      if (billData?.status === EBillStatus.PAID) {
+        console.log("Bill is paid, redirecting to success page");
+        router.push(`/payment/success?bill_id=${billData.id}`);
+      } else if (billData?.status === EBillStatus.COMPLETED) {
+        console.log("Bill is completed, redirecting to thank you page");
+        router.push("/thank-you");
+      }
     } catch (error) {
       console.error("Failed to fetch bill:", error);
       toast({
         variant: "error",
         description: "Failed to fetch bill",
       });
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const fetchPayment = async () => {
+    try {
+      const response = await apiGet(`/bill/payments`);
+      const payments = response?.data ?? [];
+      const completedPayment = payments.find(
+        (p: IPaymentCreateFromSignalR) => p.status === EPaymentStatus.SUCCEEDED
+      );
+      setPayment(completedPayment ?? null);
+    } catch (error) {
+      console.error("Failed to fetch payment:", error);
+      toast({
+        variant: "error",
+        description: "Failed to fetch payment",
+      });
     }
   };
 
   useEffect(() => {
-    fetchBill();
-  }, []);
+    const init = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchBill(), fetchPayment()]);
+      setIsLoading(false);
+    };
 
-  useEffect(() => {
-    if (isLoading) return;
+    init();
 
-    if (!session_id || !payment_method || !bill) {
-      return redirect("/payment/failed/invalid_session");
-    }
+    const accessToken = getCookie("accessToken");
 
-    if (payment_method === EPaymentMethod.PROMPTPAY) {
-      const verify = async () => {
-        try {
-          const result = await verifyCheckoutSession(session_id, bill.id);
-          console.log(result);
-          if (result.success) {
-            setStripeResult(result);
-          }
-        } catch (error) {
-          console.error("Failed to verify checkout session:", error);
-          toast({
-            variant: "error",
-            description: "Failed to verify checkout session",
-          });
+    const connect = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+        accessTokenFactory: () => `${accessToken}`,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connect
+      .start()
+      .catch((err) =>
+        console.error("Error while connecting to SignalR Hub:", err)
+      );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      if (bill && updatedBill.resource.id === bill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          router.push(`/payment/success?bill_id=${bill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          router.push("/thank-you");
         }
-      };
-      verify();
-    }
-  }, [session_id, payment_method, bill, isLoading]);
+      }
+    });
+
+    return () => {
+      connect.stop();
+    };
+  }, []);
 
   const handleCompleteBill = async () => {
     try {
@@ -145,9 +195,17 @@ const PaymentSuccessRender = () => {
     }
   };
 
-  if (payment_method === EPaymentMethod.PROMPTPAY && stripeResult && bill) {
-    return (
-      <>
+  if (isLoading) return;
+
+  if (!bill_id || !bill || bill_id !== bill.id || !payment) {
+    router.push("/payment/failed/invalid_session");
+    return;
+  }
+
+  localStorage.removeItem('cartItems');
+
+  return (
+    <>
       {showCompleteBillConfirmation && (
         <ConfirmationModal
           isOpen={showCompleteBillConfirmation}
@@ -158,26 +216,14 @@ const PaymentSuccessRender = () => {
         />
       )}
       <PaymentSuccess
-        table_name={bill.table_name}
-        status={stripeResult.status as EPaymentStatus}
-        amount_total={stripeResult.amount_total}
-        payment_method={payment_method as EPaymentMethod}
+        table_name={bill.table.name}
+        status={payment.status as EPaymentStatus}
+        amount_total={payment.amount}
+        payment_method={payment.payment_method as EPaymentMethod}
         onCompleteBill={() => setShowCompleteBillConfirmation(true)}
       />
-      </>
-    );
-  }
-
-  // if (payment_method === EPaymentMethod.CASH && bill) {
-  //   return (
-  //     <PaymentSuccess
-  //       bill_id={bill.id}
-  //       status={EPaymentStatus.PAID}
-  //       amount_total={bill.total_amount}
-  //       payment_method={payment_method as EPaymentMethod}
-  //     />
-  //   );
-  // }
+    </>
+  );
 };
 
 export default PaymentSuccessRender;
