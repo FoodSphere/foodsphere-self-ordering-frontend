@@ -119,6 +119,20 @@ const MyOrderRender = () => {
       setRawOrders((prevOrders) => [...prevOrders, newOrder]);
     });
 
+    connect.on("order_status_updated", (updatedOrder: OrderUpdateFromSignalR) => {
+      setRawOrders((prevOrders) => [
+        ...prevOrders.map((order) => {
+          if (order.id === updatedOrder.resource.id) {
+            return {
+              ...order,
+              status: updatedOrder.status,
+            };
+          }
+          return order;
+        })
+      ]);
+    });
+
     return () => {
       connect.stop();
     };

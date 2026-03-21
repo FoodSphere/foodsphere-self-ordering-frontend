@@ -16,13 +16,13 @@ import {
   EHttpStatusCode,
   EOrderStatus,
   EPaymentMethod,
-  EPaymentStatus,
   EServiceRequestStatus,
   EServiceRequestType,
 } from "@/types/enum";
 import {
   OrderGroupResponse,
   OrderGroupWithMenuMapping,
+  OrderUpdateFromSignalR,
 } from "@/types/orderType";
 import {
   ServiceRequestFromSignalR,
@@ -30,10 +30,8 @@ import {
 } from "@/types/serviceRequestType";
 
 import WaitingModal from "./components/WaitingModal";
-import { IPaymentUpdateFromSignalR } from "@/types/paymentType";
 
 const PaymentRender = () => {
-  const router = useRouter();
   const { mapOrderItemsToOrderMenuItems } = useMenu();
 
   const [paymentMethod, setPaymentMethod] = useState<EPaymentMethod>(
@@ -89,14 +87,34 @@ const PaymentRender = () => {
     connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
       if (bill && updatedBill.resource.id === bill.id) {
         if (updatedBill.status === EBillStatus.PAID) {
-          return redirect(
-            `/payment/success?bill_id=${bill.id}`
-          );
+          return redirect(`/payment/success?bill_id=${bill.id}`);
         } else if (updatedBill.status === EBillStatus.COMPLETED) {
           return redirect("/thank-you");
         }
       }
     });
+
+    connect.on(
+      "order_status_updated",
+      async (updatedOrder: OrderUpdateFromSignalR) => {
+        if (completedOrders.find((order) => order.id === updatedOrder.resource.id)) return;
+
+        const res = await apiGet(`/orders/${updatedOrder.resource.id}`);
+        const order = res?.data ?? null;
+
+        if (!order) return;
+
+        const newCompletedOrder: OrderGroupResponse = {
+          id: order.id,
+          create_time: order.create_time,
+          update_time: order.update_time,
+          items: order.items,
+          status: order.status,
+        };
+        console.log("newCompletedOrder", newCompletedOrder);
+        setRawOrders((prevOrders) => [...prevOrders, newCompletedOrder]);
+      }
+    );
 
     return () => {
       connect.stop();
