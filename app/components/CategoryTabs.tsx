@@ -7,6 +7,7 @@ import { useRef } from "react";
 interface CategoryTabsProps {
   categories: string[];
   activeCategory: string;
+  tableName: string;
   onSelectCategory: (category: string) => void;
   onSearch: (query: string) => void;
 }
@@ -14,6 +15,7 @@ interface CategoryTabsProps {
 const CategoryTabs = ({
   categories,
   activeCategory,
+  tableName,
   onSelectCategory,
   onSearch,
 }: CategoryTabsProps) => {
@@ -35,7 +37,14 @@ const CategoryTabs = ({
   return (
     <div className="w-full bg-white shadow-sm flex flex-col z-50">
       <div className="px-4 py-2">
-        <h2 className="text-xl font-bold text-gray-800">Hell's Kitchen</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-800">Hell's Kitchen</h2>
+          {tableName !== "" && (
+            <div className="bg-[var(--primary-orange-main)] px-4 py-2 rounded-lg">
+              <p className="text-sm text-white">Table {tableName}</p>
+            </div>
+          )}
+        </div>
         <div className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"

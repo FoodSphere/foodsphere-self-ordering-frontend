@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Minus, Plus, X } from "lucide-react";
 import Image from "next/image";
-import { X, Minus, Plus } from "lucide-react";
+
 import { CartItem } from "@/types/cartType";
-import { OrderMenuItem } from "@/types/orderType";
 import { componentMappedMenu } from "@/types/menuType";
+import { OrderMenuItem } from "@/types/orderType";
 
 const ComponentMenuCard = ({
   component,
@@ -40,7 +41,12 @@ interface OrderCustomizationModalProps {
   item: CartItem | OrderMenuItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: ((item: CartItem | OrderMenuItem, quantity: number, notes: string | null, orderGroupId: number) => void);
+  onConfirm: (
+    item: CartItem | OrderMenuItem,
+    quantity: number,
+    notes: string | null,
+    orderGroupId: number
+  ) => void;
   mode: "add" | "edit";
 }
 
@@ -70,7 +76,7 @@ const OrderCustomizationModal = ({
 
   const handleConfirm = () => {
     if (mode === "edit") {
-      if (!orderGroupId) {
+      if (orderGroupId === null || orderGroupId === undefined) {
         throw new Error("Order group ID is required for edit mode");
       }
       onConfirm(item, quantity, note, orderGroupId);
@@ -113,23 +119,24 @@ const OrderCustomizationModal = ({
           {/* Title & Desc */}
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{item.name}</h2>
-            <p className="text-gray-500 text-sm mt-1">
-              {item.description}
-            </p>
+            <p className="text-gray-500 text-sm mt-1">{item.description}</p>
           </div>
 
           <div className="h-px bg-gray-100 mb-0" />
-          
+
           {/* Components */}
           {item.components && item.components.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-bold text-lg text-gray-800">Components</h3>
               {item.components.map((component) => (
-                <div key={component.menu_id} className="space-y-3 border border-gray-200 rounded-xl p-3">
+                <div
+                  key={component.menu_id}
+                  className="space-y-3 border border-gray-200 rounded-xl p-3"
+                >
                   <ComponentMenuCard component={component} />
+                </div>
+              ))}
             </div>
-          ))}
-          </div>
           )}
 
           <div className="h-px bg-gray-100 mb-0" />

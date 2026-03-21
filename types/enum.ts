@@ -44,10 +44,17 @@ export enum EPaymentMethod {
 }
 
 export enum EPaymentStatus {
-  PAID = "paid",
-  UNPAID = "unpaid",
-  NO_PAYMENT_REQUIRED = "no_payment_required",
-  CANCELLED = "cancelled",
+  PENDING = 0,
+  SUCCEEDED = 1,
+  FAILED = 2,
+  REFUNDED = 3,
+}
+
+export enum EBillStatus {
+  OPEN = 0,
+  PAID = 1,
+  COMPLETED = 2,
+  CANCELLED = 3,
 }
 
 export enum EServiceRequestStatus {

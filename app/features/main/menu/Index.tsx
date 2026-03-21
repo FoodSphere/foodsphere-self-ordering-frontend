@@ -7,14 +7,19 @@ import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import { useCart } from "@/app/context/CartContext";
 import { CartItem } from "@/types/cartType";
 import { MenuItem } from "@/types/menuType";
-import { useMenu } from "@/app/context/MenuContext";
 import { OrderMenuItem } from "@/types/orderType";
 import { apiGet } from "@/services/common";
 import { tag } from "@/types/menuType";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import { getCookie } from "@/libs/cookie";
+import { EBillStatus } from "@/types/enum";
+import { redirect } from "next/navigation";
+import * as signalR from "@microsoft/signalr";
 
 const MenuRender = () => {
-  const { menus } = useMenu();
+  const [menus, setMenus] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [bill, setBill] = useState<Bill | null>(null);
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,14 +76,33 @@ const MenuRender = () => {
     return matchesCategory && matchesSearch;
   });
 
+  const fetchMenus = async () => {
+    const res = await apiGet("/menus");
+    setMenus(res?.data ?? []);
+  };
+
   const fetchTags = async () => {
     const res = await apiGet("/tags");
     const catagories = res?.data.map((tag: tag) => tag.name) ?? [];
     setCategories(["All", "Promotion", ...catagories, "Other"]);
   };
 
+  const fetchBill = async () => {
+    const res = await apiGet("/bill");
+    const billData = res?.data ?? null;
+    setBill(billData);
+
+    if (billData?.status === EBillStatus.PAID) {
+      return redirect(`/payment/success?bill_id=${billData.id}`);
+    } else if (billData?.status === EBillStatus.COMPLETED) {
+      return redirect("/thank-you");
+    }
+  };
+
   useEffect(() => {
+    fetchMenus();
     fetchTags();
+    fetchBill();
   }, []);
 
   return (
@@ -86,6 +110,7 @@ const MenuRender = () => {
       <CategoryTabs
         categories={categories}
         activeCategory={activeCategory}
+        tableName={bill?.table.name || ""}
         onSelectCategory={setActiveCategory}
         onSearch={setSearchQuery}
       />
@@ -95,11 +120,14 @@ const MenuRender = () => {
           {categories.slice(1).map((category) => {
             const categoryItems = filteredItems.filter((item) => {
               const isPromotion = item.components && item.components.length > 0;
-              const isOther = (!item.tags || item.tags.length === 0) && !isPromotion;
+              const isOther =
+                (!item.tags || item.tags.length === 0) && !isPromotion;
 
               if (category === "Other") return isOther;
               if (category === "Promotion" && isPromotion) return true;
-              return item.tags && item.tags.some((tag) => tag.name === category);
+              return (
+                item.tags && item.tags.some((tag) => tag.name === category)
+              );
             });
             if (categoryItems.length === 0) return null;
 

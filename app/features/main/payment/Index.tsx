@@ -2,24 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as signalR from "@microsoft/signalr";
-import {
-  Banknote,
-  Bell,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  QrCode,
-} from "lucide-react";
+import { Banknote, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
 import { useMenu } from "@/app/context/MenuContext";
 import { getCookie } from "@/libs/cookie";
 import { apiDelete, apiGet, apiPost } from "@/services/common";
 import { checkout } from "@/services/stripe";
-import { Bill } from "@/types/billType";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
 import {
+  EBillStatus,
   EHttpStatusCode,
   EOrderStatus,
   EPaymentMethod,
@@ -29,6 +22,7 @@ import {
 import {
   OrderGroupResponse,
   OrderGroupWithMenuMapping,
+  OrderUpdateFromSignalR,
 } from "@/types/orderType";
 import {
   ServiceRequestFromSignalR,
@@ -38,7 +32,6 @@ import {
 import WaitingModal from "./components/WaitingModal";
 
 const PaymentRender = () => {
-  const router = useRouter();
   const { mapOrderItemsToOrderMenuItems } = useMenu();
 
   const [paymentMethod, setPaymentMethod] = useState<EPaymentMethod>(
@@ -63,12 +56,69 @@ const PaymentRender = () => {
 
   const fetchBill = async () => {
     const response = await apiGet(`/bill`);
-    setBill(response?.data ?? null);
+    const billData = response?.data ?? null;
+    setBill(billData);
+
+    if (billData?.status === EBillStatus.PAID) {
+      return redirect(`/payment/success?bill_id=${billData.id}`);
+    } else if (billData?.status === EBillStatus.COMPLETED) {
+      return redirect(`/thank-you`);
+    }
   };
 
   useEffect(() => {
     fetchOrders();
     fetchBill();
+
+    const accessToken = getCookie("accessToken");
+
+    const connect = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+        accessTokenFactory: () => `${accessToken}`,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connect
+      .start()
+      .catch((err) =>
+        console.error("Error while connecting to SignalR Hub:", err)
+      );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      if (bill && updatedBill.resource.id === bill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          return redirect(`/payment/success?bill_id=${bill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          return redirect("/thank-you");
+        }
+      }
+    });
+
+    connect.on(
+      "order_status_updated",
+      async (updatedOrder: OrderUpdateFromSignalR) => {
+        if (completedOrders.find((order) => order.id === updatedOrder.resource.id)) return;
+
+        const res = await apiGet(`/orders/${updatedOrder.resource.id}`);
+        const order = res?.data ?? null;
+
+        if (!order) return;
+
+        const newCompletedOrder: OrderGroupResponse = {
+          id: order.id,
+          create_time: order.create_time,
+          update_time: order.update_time,
+          items: order.items,
+          status: order.status,
+        };
+        console.log("newCompletedOrder", newCompletedOrder);
+        setRawOrders((prevOrders) => [...prevOrders, newCompletedOrder]);
+      }
+    );
+
+    return () => {
+      connect.stop();
+    };
   }, []);
 
   const completedOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
@@ -172,14 +222,23 @@ const PaymentRender = () => {
   return (
     <div className="h-screen bg-gray-50 flex flex-col pb-20 overflow-y-hidden">
       {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm flex items-center gap-2">
-        <Link
-          href="/menu"
-          className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
-        >
-          <ChevronLeft size={24} />
-        </Link>
-        <h1 className="text-lg font-bold">Table 10</h1>
+      <div className="bg-white px-4 py-3 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/menu"
+            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
+          >
+            <ChevronLeft size={24} />
+          </Link>
+          <h1 className="text-xl font-bold text-gray-800">Payment</h1>
+        </div>
+        {bill?.table.name && (
+          <div className="bg-[var(--primary-orange-main)] px-4 py-2 rounded-lg">
+            <p className="text-sm font-bold text-white">
+              Table {bill.table.name}
+            </p>
+          </div>
+        )}
       </div>
 
       <main className="flex-1 overflow-hidden flex flex-col px-4 pt-4">
@@ -253,10 +312,10 @@ const PaymentRender = () => {
             {/* Separator */}
             <div className="h-2 bg-gray-100"></div>
 
-            {/* Payment Details Section */}
+            {/* Payment Method Section */}
             <section className="bg-white px-4 py-4">
               <h2 className="text-lg font-bold mb-4 text-black">
-                Payment Details
+                Payment Method
               </h2>
 
               {/* Payment Method Selector */}
@@ -340,7 +399,23 @@ const PaymentRender = () => {
               {/* Call Waiter - Secondary Action */}
               <button
                 onClick={handleCallWaiter}
-                className="w-full text-gray-500 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full text-gray-500 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Call Waiter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Waiter - Secondary Action */}
+      {completedOrders.length === 0 && (
+        <div className="px-4 pb-4 bg-gray-50 flex-shrink-0">
+          <div className="bg-white p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-gray-100">
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleCallWaiter}
+                className="w-full text-white text-sm font-medium py-2 rounded-lg bg-[var(--primary-orange-main)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
               >
                 Call Waiter
               </button>

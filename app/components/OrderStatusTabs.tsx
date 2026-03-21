@@ -8,12 +8,14 @@ import { EOrderStatusString } from "@/types/enum";
 interface OrderStatusTabsProps {
   orderStatus: EOrderStatusString[];
   activeOrderStatus: EOrderStatusString;
+  tableName: string;
   onSelectOrderStatus: (orderStatus: EOrderStatusString) => void;
 }
 
 const OrderStatusTabs = ({
   orderStatus,
   activeOrderStatus,
+  tableName,
   onSelectOrderStatus,
 }: OrderStatusTabsProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -34,7 +36,14 @@ const OrderStatusTabs = ({
   return (
     <div className="w-full bg-white sticky top-0 shadow-sm flex flex-col z-50">
       <div className="px-4">
-        <h1 className="text-xl font-bold text-gray-800">My Order</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-gray-800">My Order</h1>
+          {tableName !== "" && (
+            <div className="bg-[var(--primary-orange-main)] px-4 py-2 rounded-lg">
+              <p className="text-sm text-white">Table {tableName}</p>
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex justify-between items-center w-full pb-2">
         <button

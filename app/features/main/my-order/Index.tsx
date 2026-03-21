@@ -10,7 +10,7 @@ import { useMenu } from "@/app/context/MenuContext";
 import { getCookie } from "@/libs/cookie";
 import { apiGet, apiPut } from "@/services/common";
 import { CartItem } from "@/types/cartType";
-import { EOrderStatus, EOrderStatusString, OrderStatus } from "@/types/enum";
+import { EBillStatus, EOrderStatus, EOrderStatusString, OrderStatus } from "@/types/enum";
 import {
   OrderCreatedFromSignalR,
   OrderGroupResponse,
@@ -22,6 +22,8 @@ import {
 
 import MyOrderGroupCard from "../../../components/MyOrderGroupCard";
 import OrderStatusTabs from "../../../components/OrderStatusTabs";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import { redirect } from "next/navigation";
 
 const orderStatusMap: OrderStatus = {
   [EOrderStatusString.ALL]: EOrderStatus.ALL,
@@ -35,6 +37,7 @@ const MyOrderRender = () => {
   const { mapOrderItemsToOrderMenuItems } = useMenu();
 
   const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+  const [bill, setBill] = useState<Bill | null>(null);
 
   const [selectedOrderGroupId, setSelectedOrderGroupId] = useState<
     number | null
@@ -75,8 +78,21 @@ const MyOrderRender = () => {
     setRawOrders(response?.data ?? []);
   };
 
+  const fetchBill = async () => {
+    const response = await apiGet("/bill");
+    const billData = response?.data ?? null;
+    setBill(billData);
+
+    if (billData?.status === EBillStatus.PAID) {
+      return redirect(`/payment/success?bill_id=${billData.id}`);
+    } else if (billData?.status === EBillStatus.COMPLETED) {
+      return redirect(`/thank-you`);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchBill();
 
     const accessToken = getCookie("accessToken");
 
@@ -103,18 +119,19 @@ const MyOrderRender = () => {
       setRawOrders((prevOrders) => [...prevOrders, newOrder]);
     });
 
-    connect.on(
-      "order_status_updated",
-      (updatedOrder: OrderUpdateFromSignalR) => {
-        setRawOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.id === updatedOrder.resource.id
-              ? { ...order, status: updatedOrder.status }
-              : order
-          )
-        );
-      }
-    );
+    connect.on("order_status_updated", (updatedOrder: OrderUpdateFromSignalR) => {
+      setRawOrders((prevOrders) => [
+        ...prevOrders.map((order) => {
+          if (order.id === updatedOrder.resource.id) {
+            return {
+              ...order,
+              status: updatedOrder.status,
+            };
+          }
+          return order;
+        })
+      ]);
+    });
 
     return () => {
       connect.stop();
@@ -167,6 +184,7 @@ const MyOrderRender = () => {
         <OrderStatusTabs
           orderStatus={Object.keys(orderStatusMap) as EOrderStatusString[]}
           activeOrderStatus={activeTab}
+          tableName={bill?.table.name ?? ""}
           onSelectOrderStatus={handleSelectOrderStatus}
         />
         <main className="flex-1 px-4 pt-4 overflow-y-auto pb-20 mb-20">

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { apiPatch, apiPost } from "@/services/common";
-import { OrderGroupRequest, OrderPatchRequest } from "@/types/orderType";
+import React, { createContext, useContext, useEffect, useState } from "react";
+
+import { apiPatch } from "@/services/common";
 import { CartItem } from "@/types/cartType";
 import { EHttpStatusCode } from "@/types/enum";
+import { OrderPatchRequest } from "@/types/orderType";
+
 import { toast } from "../components/ui/toast/use-toast";
 
 interface CartContextType {
@@ -14,6 +16,7 @@ interface CartContextType {
   updateQuantity: (id: number, note: string | null, delta: number) => void;
   updateCartItem: (
     id: number,
+    oldNote: string | null,
     note: string | null,
     updates: Partial<CartItem>
   ) => void;
@@ -101,12 +104,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateCartItem = (
     id: number,
+    oldNote: string | null,
     note: string | null = null,
     updates: Partial<CartItem>
   ) => {
     setCartItems((prev) =>
       prev.map((item) =>
-        item.menu_id === id && item.note === note
+        item.menu_id === id && item.note === oldNote
           ? { ...item, ...updates }
           : item
       )

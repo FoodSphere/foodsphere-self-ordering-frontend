@@ -1,13 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { ChevronLeft, History, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronLeft, Trash2, History } from "lucide-react";
+import { redirect } from "next/navigation";
+
+import CartItemCard from "@/app/components/CartItemCard";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import OrderHistoryModal from "@/app/components/OrderHistoryModal";
-import CartItemCard from "@/app/components/CartItemCard";
 import { useCart } from "@/app/context/CartContext";
+import { apiGet } from "@/services/common";
 import { CartItem } from "@/types/cartType";
+import { EBillStatus } from "@/types/enum";
 import { OrderMenuItem } from "@/types/orderType";
 
 const CartRender = () => {
@@ -33,15 +37,31 @@ const CartRender = () => {
   const handleUpdateItem = (
     item: CartItem | OrderMenuItem,
     quantity: number,
-    note: string | null = null,
+    note: string | null = null
   ) => {
     // Update the item in the cart
-    updateCartItem(item.menu_id, note, {
+    updateCartItem(item.menu_id, item.note, note, {
       quantity,
       note,
     });
     setIsModalOpen(false);
   };
+
+  useEffect(() => {
+    const fetchBill = async () => {
+      const response = await apiGet(`/bill`);
+      const billData = response?.data;
+
+      if (billData?.status === EBillStatus.PAID) {
+        clearCart();
+        return redirect(`/payment/success?bill_id=${billData.id}`);
+      } else if (billData?.status === EBillStatus.COMPLETED) {
+        clearCart();
+        return redirect("/thank-you");
+      }
+    };
+    fetchBill();
+  });
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden pb-20">
@@ -124,14 +144,16 @@ const CartRender = () => {
         </div>
       )}
 
-      <OrderCustomizationModal
-        orderGroupId={0} // 0 is a placeholder for cart items
-        item={selectedItem}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={handleUpdateItem}
-        mode="edit"
-      />
+      {selectedItem && (
+        <OrderCustomizationModal
+          orderGroupId={selectedItem.id}
+          item={selectedItem}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleUpdateItem}
+          mode="edit"
+        />
+      )}
 
       <OrderHistoryModal
         isOpen={isHistoryModalOpen}
