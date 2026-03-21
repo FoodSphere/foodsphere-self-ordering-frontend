@@ -62,9 +62,9 @@ export const apiGet = async (path: string, query?: string) => {
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
 
@@ -92,9 +92,9 @@ export const apiGetNoLoading = async (path: string, query?: string) => {
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
     return await handleResponse(res);
@@ -133,9 +133,9 @@ export const apiPost = async (path: string, payload?: any) => {
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
     return await handleResponse(res);
@@ -175,9 +175,9 @@ export const apiPut = async (path: string, payload?: any) => {
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
     return;
@@ -222,9 +222,9 @@ export const apiPatch = async (
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
     return await handleResponse(res);
@@ -254,9 +254,9 @@ export const apiDelete = async (path: string) => {
     ) {
       // await signOut();
       const pathname = window.location.pathname;
-      // if (pathname !== "/not-found") {
-      //   window.location.href = "/not-found";
-      // }
+      if (pathname !== "/not-found") {
+        window.location.href = "/not-found";
+      }
       return;
     }
     return await handleResponse(res);
