@@ -6,3 +6,8 @@ resources:
   - service.yaml
   - configmap.yaml
   - secret.yaml
+
+images:
+  - name: ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app
+    newName: ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app
+    newTag: latest
