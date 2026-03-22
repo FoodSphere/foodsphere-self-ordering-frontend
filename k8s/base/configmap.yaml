@@ -5,6 +5,6 @@ metadata:
   namespace: web-ui
 data:
   NODE_ENV: "production"
-  NEXT_PUBLIC_BASE_URL: "http://localhost:3000"
+  NEXT_PUBLIC_BASE_URL: "http://ordering.foodsphere.space"
   NEXT_PUBLIC_BASE_API_URL: "http://ordering.foodsphere.space/api"
   NEXT_PUBLIC_BASE_SRIPE_URL: "https://api.stripe.com/v1"
