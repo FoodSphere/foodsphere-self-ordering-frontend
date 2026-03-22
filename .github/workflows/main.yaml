@@ -33,12 +33,14 @@ jobs:
 
     - name: Update Kubernetes resources
       env:
-        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
       run: |
         # Create kubeconfig directory
         mkdir -p $HOME/.kube
-        # Write KUBECONFIG secret to file
-        echo "${KUBECONFIG}" > $HOME/.kube/config
+        # Write KUBECONFIG secret to file (assuming it's raw YAML)
+        echo "${KUBE_CONFIG_DATA}" > $HOME/.kube/config
+        # Set KUBECONFIG to the file path
+        export KUBECONFIG=$HOME/.kube/config
         
         # Update image tag using kustomize
         cd k8s/base/prod
