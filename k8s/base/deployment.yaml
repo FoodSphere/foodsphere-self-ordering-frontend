@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-ordering-app
+  namespace: web-ui
+  labels:
+    app: frontend-ordering
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend-ordering
+  template:
+    metadata:
+      labels:
+        app: frontend-ordering
+    spec:
+      containers:
+      - name: frontend-ordering-container
+        image: ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app:latest
+        ports:
+        - containerPort: 3000
+        
+        envFrom:
+        - configMapRef:
+            name: frontend-ordering-config
+        - secretRef:
+            name: frontend-ordering-secret
+            
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

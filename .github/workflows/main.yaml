@@ -1,0 +1,48 @@
+name: CI/CD - Build and Push FoodSphere Ordering to GHCR.io and Deploy to K8S
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_PAT }}
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app:latest
+          ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up Kustomize
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+
+    - name: Update Kubernetes resources
+      env:
+        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      run: |
+        # Create kubeconfig directory
+        mkdir -p $HOME/.kube
+        # Write KUBECONFIG secret to file
+        echo "${KUBECONFIG}" > $HOME/.kube/config
+        
+        # Update image tag using kustomize
+        cd k8s/base/prod
+        kustomize edit set image ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app=ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app:${{ github.sha }}
+        
+        # Apply manifests
+        kubectl apply -k .
