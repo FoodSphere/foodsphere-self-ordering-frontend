@@ -6,15 +6,18 @@ import MenuItemCard from "@/app/components/MenuItemCard";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import { useCart } from "@/app/context/CartContext";
 import { CartItem } from "@/types/cartType";
-import { MenuItem } from "@/types/menuType";
+import {
+  MenuItem,
+  MenuItemResponse,
+  component,
+  componentMappedMenu,
+} from "@/types/menuType";
 import { OrderMenuItem } from "@/types/orderType";
 import { apiGet } from "@/services/common";
 import { tag } from "@/types/menuType";
-import { Bill, BillUpdateFromSignalR } from "@/types/billType";
-import { getCookie } from "@/libs/cookie";
+import { Bill } from "@/types/billType";
 import { EBillStatus } from "@/types/enum";
 import { redirect } from "next/navigation";
-import * as signalR from "@microsoft/signalr";
 
 const MenuRender = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -78,7 +81,34 @@ const MenuRender = () => {
 
   const fetchMenus = async () => {
     const res = await apiGet("/menus");
-    setMenus(res?.data ?? []);
+    const menusData = res?.data ?? [];
+
+    const menusDataWithComponents: MenuItem[] = menusData.map(
+      (menu: MenuItemResponse) => {
+        const components = menu.components.map((component: component) => {
+          const componentMenu = menusData.find(
+            (m: MenuItem) => m.id === component.menu_id
+          );
+          const componentMappedMenu: componentMappedMenu = {
+            ...component,
+            menu_id: component.menu_id,
+            quantity: component.quantity,
+            name: componentMenu?.name,
+            price: componentMenu?.price,
+            image_url: componentMenu?.image_url,
+            description: componentMenu?.description,
+          };
+          return componentMappedMenu;
+        });
+
+        return {
+          ...menu,
+          components: components,
+        };
+      }
+    );
+
+    setMenus(menusDataWithComponents);
   };
 
   const fetchTags = async () => {
