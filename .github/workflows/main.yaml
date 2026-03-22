@@ -44,7 +44,7 @@ jobs:
         export KUBECONFIG=$HOME/.kube/config
         
         # Update image tag using kustomize
-        cd k8s/base/prod
+        cd k8s/base/
         kustomize edit set image ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app=ghcr.io/foodsphere/foodsphere-self-ordering-frontend/ordering-app:${{ github.sha }}
         
         # Apply manifests
