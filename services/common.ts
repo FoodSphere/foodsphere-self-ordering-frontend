@@ -58,7 +58,8 @@ export const apiGet = async (path: string, query?: string) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
       const pathname = window.location.pathname;
@@ -88,6 +89,7 @@ export const apiGetNoLoading = async (path: string, query?: string) => {
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
       res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND ||
       res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
@@ -129,7 +131,8 @@ export const apiPost = async (path: string, payload?: any) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
       const pathname = window.location.pathname;
@@ -171,7 +174,8 @@ export const apiPut = async (path: string, payload?: any) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
       const pathname = window.location.pathname;
@@ -218,7 +222,8 @@ export const apiPatch = async (
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
       const pathname = window.location.pathname;
@@ -250,7 +255,8 @@ export const apiDelete = async (path: string) => {
 
     if (
       res.status === EHttpStatusCode.INVALID_TOKEN ||
-      res.status === EHttpStatusCode.UNAUTHORIZED
+      res.status === EHttpStatusCode.UNAUTHORIZED ||
+      res.status === EHttpStatusCode.NOT_FOUND
     ) {
       // await signOut();
       const pathname = window.location.pathname;
