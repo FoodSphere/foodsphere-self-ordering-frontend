@@ -83,7 +83,7 @@ export async function checkout(totalPrice: number, bill: Bill) {
           payment_method: EPaymentMethod.PROMPTPAY,
         },
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/payment/success?bill_id=${bill.id}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/payment/cancel`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/payment`,
       });
       return redirect(session.url as string);
     }
