@@ -220,7 +220,7 @@ const PaymentRender = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col pb-20 overflow-y-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col pb-[80px] overflow-y-hidden">
       {/* Header */}
       <div className="bg-white px-4 py-3 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -376,7 +376,7 @@ const PaymentRender = () => {
 
       {/* Footer Actions - Only show if there are items */}
       {completedOrders.length > 0 && (
-        <div className="px-4 pb-4 bg-gray-50 flex-shrink-0">
+        <div className="px-4 pb-4 bg-gray-50">
           <div className="bg-white p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-gray-100">
             <div className="flex justify-between items-center mb-4">
               <span className="text-gray-600 font-medium">
