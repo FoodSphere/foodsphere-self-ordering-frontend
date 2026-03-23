@@ -18,11 +18,13 @@ import { tag } from "@/types/menuType";
 import { Bill } from "@/types/billType";
 import { EBillStatus } from "@/types/enum";
 import { redirect } from "next/navigation";
+import { Restaurant } from "@/types/restaurantType";
 
 const MenuRender = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -129,10 +131,17 @@ const MenuRender = () => {
     }
   };
 
+  const fetchRestaurant = async () => {
+    const res = await apiGet("/restaurant");
+    const restaurantData = res?.data ?? null;
+    setRestaurant(restaurantData);
+  };
+
   useEffect(() => {
     fetchMenus();
     fetchTags();
     fetchBill();
+    fetchRestaurant();
   }, []);
 
   return (
@@ -140,6 +149,7 @@ const MenuRender = () => {
       <CategoryTabs
         categories={categories}
         activeCategory={activeCategory}
+        restaurantName={restaurant?.restaurant_name || ""}
         tableName={bill?.table.name || ""}
         onSelectCategory={setActiveCategory}
         onSearch={setSearchQuery}
