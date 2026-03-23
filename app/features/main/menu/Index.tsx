@@ -163,10 +163,11 @@ const MenuRender = () => {
               const isOther =
                 (!item.tags || item.tags.length === 0) && !isPromotion;
 
-              if (category === "Other") return isOther;
-              if (category === "Promotion" && isPromotion) return true;
+              if (activeCategory === "All") return (category === "Promotion" && isPromotion) || (category === "Other" && isOther) || (item.tags && item.tags.some((tag) => tag.name === category));
+              if (category === "Other" && activeCategory === "Other") return isOther;
+              if (category === "Promotion" && activeCategory === "Promotion") return isPromotion;
               return (
-                item.tags && item.tags.some((tag) => tag.name === category)
+                item.tags && item.tags.some((tag) => tag.name === category && activeCategory === category)
               );
             });
             if (categoryItems.length === 0) return null;
