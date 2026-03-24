@@ -16,7 +16,7 @@ import { OrderMenuItem } from "@/types/orderType";
 import { apiGet } from "@/services/common";
 import { tag } from "@/types/menuType";
 import { Bill } from "@/types/billType";
-import { EBillStatus } from "@/types/enum";
+import { EBillStatus, EMenuStatus } from "@/types/enum";
 import { redirect } from "next/navigation";
 import { Restaurant } from "@/types/restaurantType";
 
@@ -82,7 +82,7 @@ const MenuRender = () => {
   });
 
   const fetchMenus = async () => {
-    const res = await apiGet("/menus");
+    const res = await apiGet(`/menus?stock_availability=true&status=${EMenuStatus.ACTIVE}`);
     const menusData = res?.data ?? [];
 
     const menusDataWithComponents: MenuItem[] = menusData.map(

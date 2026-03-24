@@ -13,6 +13,11 @@ export enum ESort {
   DESC = "desc",
 }
 
+export enum EMenuStatus {
+  INACTIVE = 0,
+  ACTIVE = 1,
+}
+
 export enum EOrderStatus {
   ALL = "all",
   DRAFT = 0,
