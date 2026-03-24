@@ -139,11 +139,36 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       },
     }));
 
-    const response = await apiPatch("/orders", newOrderGroups);
-    const status = response?.statusCode;
+    try {
+      const response = await apiPatch("/orders", newOrderGroups);
+      const status = response?.statusCode;
 
-    if (status === EHttpStatusCode.SUCCESS) {
-      clearCart();
+      if (status === EHttpStatusCode.SUCCESS) {
+        toast({
+          icon: "ToastSuccess",
+          variant: "success",
+          description: "Order placed successfully.",
+        });
+        clearCart();
+      } else if (status === EHttpStatusCode.CONFLICT) {
+        toast({
+          icon: "ToastError",
+          variant: "error",
+          description: "Some of menu unavailable. Please try again.",
+        });
+      } else {
+        toast({
+          icon: "ToastError",
+          variant: "error",
+          description: "Failed to place order. Please try again.",
+        });
+      }
+    } catch (error) {
+      toast({
+        icon: "ToastError",
+        variant: "error",
+        description: "Failed to place order. Please try again.",
+      });
     }
   };
 
