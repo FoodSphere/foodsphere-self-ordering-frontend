@@ -6,6 +6,7 @@ import Stripe from "stripe";
 
 import { Bill } from "@/types/billType";
 import { EPaymentMethod } from "@/types/enum";
+import { toast } from "@/app/components/ui/toast/use-toast";
 
 // Lock customer email
 const customerEmail = "guest-foodsphere@gmail.com";
@@ -28,9 +29,13 @@ const getConnectedAccountId = async () => {
   });
 
   const restaurant = await res.json();
-  console.log(restaurant);
 
   if (!restaurant) {
+    toast({
+      icon: "ToastError",
+      variant: "error",
+      description: "No restaurant found.",
+    });
     throw new Error("No restaurant found");
   }
   return restaurant.stripe_account_id;
@@ -40,7 +45,11 @@ export async function checkout(totalPrice: number, bill: Bill) {
   const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
   if (!STRIPE_SECRET_KEY) {
-    console.error("STRIPE_SECRET_KEY is not defined in the server environment");
+    toast({
+      icon: "ToastError",
+      variant: "error",
+      description: "STRIPE_SECRET_KEY is not defined.",
+    });
     throw new Error("STRIPE_SECRET_KEY is not defined");
   }
 
@@ -88,7 +97,11 @@ export async function checkout(totalPrice: number, bill: Bill) {
       return redirect(session.url as string);
     }
   } catch (error) {
-    console.error("Stripe Checkout Error:", error);
+    toast({
+      icon: "ToastError",
+      variant: "error",
+      description: "Stripe Checkout Error.",
+    });
     throw error;
   }
 }

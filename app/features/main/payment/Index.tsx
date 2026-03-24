@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { Banknote, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import Link from "next/link";
-import { redirect, useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
+import { toast } from "@/app/components/ui/toast/use-toast";
 
 import { useMenu } from "@/app/context/MenuContext";
 import { getCookie } from "@/libs/cookie";
@@ -97,7 +98,10 @@ const PaymentRender = () => {
     connect.on(
       "order_status_updated",
       async (updatedOrder: OrderUpdateFromSignalR) => {
-        if (completedOrders.find((order) => order.id === updatedOrder.resource.id)) return;
+        if (
+          completedOrders.find((order) => order.id === updatedOrder.resource.id)
+        )
+          return;
 
         const res = await apiGet(`/orders/${updatedOrder.resource.id}`);
         const order = res?.data ?? null;
@@ -111,7 +115,6 @@ const PaymentRender = () => {
           items: order.items,
           status: order.status,
         };
-        console.log("newCompletedOrder", newCompletedOrder);
         setRawOrders((prevOrders) => [...prevOrders, newCompletedOrder]);
       }
     );
@@ -157,50 +160,56 @@ const PaymentRender = () => {
   };
 
   const handleCallWaiter = async () => {
-    console.log("Call Waiter!!!");
     createServiceRequest(EServiceRequestType.CALL_WAITER);
   };
 
   const createServiceRequest = async (reason: EServiceRequestType) => {
-    const res = await apiPost(`/requests`, {
-      reason,
-    });
+    try {
+      const res = await apiPost(`/requests`, {
+        reason,
+      });
 
-    if (res && res.statusCode === EHttpStatusCode.CREATED) {
-      const accessToken = getCookie("accessToken");
+      if (res && res.statusCode === EHttpStatusCode.CREATED) {
+        const accessToken = getCookie("accessToken");
 
-      const connect = new signalR.HubConnectionBuilder()
-        .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
-          accessTokenFactory: () => `${accessToken}`,
-        })
-        .withAutomaticReconnect()
-        .build();
-      connect
-        .start()
-        .catch((err) =>
-          console.error("Error while connecting to SignalR Hub:", err)
-        );
-      setConnection(connect);
-      connect.on(
-        "service_request_status_updated",
-        (updatedRequest: ServiceRequestFromSignalR) => {
-          console.log("Service request status updated", updatedRequest);
-          if (updatedRequest.id === requestService?.id) {
-            if (updatedRequest.status === EServiceRequestStatus.CANCELLED) {
-              setShowWaitingModal(false);
-              connection?.stop();
-              setConnection(null);
-              setRequestService(null);
-              return;
+        const connect = new signalR.HubConnectionBuilder()
+          .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+            accessTokenFactory: () => `${accessToken}`,
+          })
+          .withAutomaticReconnect()
+          .build();
+        connect
+          .start()
+          .catch((err) =>
+            console.error("Error while connecting to SignalR Hub:", err)
+          );
+        setConnection(connect);
+        connect.on(
+          "service_request_status_updated",
+          (updatedRequest: ServiceRequestFromSignalR) => {
+            if (updatedRequest.id === requestService?.id) {
+              if (updatedRequest.status === EServiceRequestStatus.CANCELLED) {
+                setShowWaitingModal(false);
+                connection?.stop();
+                setConnection(null);
+                setRequestService(null);
+                return;
+              }
+              setRequestService(updatedRequest);
             }
-            setRequestService(updatedRequest);
           }
-        }
-      );
+        );
 
-      console.log("Waiter called successfully");
-      setRequestService(res.data);
-      setShowWaitingModal(true);
+        setRequestService(res.data);
+        setShowWaitingModal(true);
+      }
+    } catch (error) {
+      console.error("Error while creating service request:", error);
+      toast({
+        icon: "ToastError",
+        variant: "error",
+        description: "Failed to create service request.",
+      });
     }
   };
 

@@ -1,9 +1,10 @@
 "use client";
 
 // import { signOut } from "next-auth/react";
-import { clearCookie, getCookie } from "@/libs/cookie";
+import { getCookie } from "@/libs/cookie";
 import { useGlobalStore } from "../store/globalStore";
 import { EHttpStatusCode } from "../types/enum";
+import { toast } from "@/app/components/ui/toast/use-toast";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL || "";
 
@@ -72,6 +73,11 @@ export const apiGet = async (path: string, query?: string) => {
     return await handleResponse(res);
   } catch (error) {
     console.log("error :", error);
+    toast({
+      icon: "ToastError",
+      variant: "error",
+      description: "Something went wrong.",
+    });
   } finally {
     useGlobalStore.getState().setLoading(false);
   }
