@@ -112,17 +112,25 @@ const PaymentSuccessRender = () => {
       setBill(billData);
 
       if (billData?.status === EBillStatus.PAID) {
-        console.log("Bill is paid, redirecting to success page");
+        toast({
+          icon: "ToastSuccess",
+          variant: "success",
+          description: "Bill is paid successfully.",
+        });
         router.push(`/payment/success?bill_id=${billData.id}`);
       } else if (billData?.status === EBillStatus.COMPLETED) {
-        console.log("Bill is completed, redirecting to thank you page");
+        toast({
+          icon: "ToastSuccess",
+          variant: "success",
+          description: "Bill is completed successfully.",
+        });
         router.push("/thank-you");
       }
     } catch (error) {
-      console.error("Failed to fetch bill:", error);
       toast({
+        icon: "ToastError",
         variant: "error",
-        description: "Failed to fetch bill",
+        description: "Failed to fetch bill.",
       });
     }
   };
