@@ -22,6 +22,26 @@
   --fail-01: hsl(11, 83%, 50%);
   /* Text Color Gray */
   --textcolor-gray-01: hsl(0, 0%, 35%);
+
+  /* Toast Colors */
+  --toast-info-background: hsl(210, 100%, 97%);
+  --toast-info-border: hsl(210, 100%, 90%);
+  --toast-success-background: hsl(140, 100%, 97%);
+  --toast-success-border: hsl(140, 100%, 90%);
+  --toast-warning-background: hsl(45, 100%, 97%);
+  --toast-warning-border: hsl(45, 100%, 90%);
+  --toast-error-background: hsl(0, 100%, 97%);
+  --toast-error-border: hsl(0, 100%, 90%);
+
+  /* Status Tokens */
+  --status-success: hsl(142, 76%, 36%);
+  --status-warning: hsl(38, 92%, 50%);
+  --status-error: hsl(0, 84%, 60%);
+  
+  --accept-02: hsl(210, 100%, 40%);
+  --success-02: hsl(142, 76%, 36%);
+  --process-02: hsl(38, 92%, 50%);
+  --urgent-fail-02: hsl(0, 84%, 60%);
 }
 
 /* 3. กำหนดค่าตัวแปรสำหรับ Dark Mode */
@@ -52,6 +72,26 @@
 
   /* Text color */
   --color-textcolor-gray-01: var(--textcolor-gray-01);
+
+  /* Toast colors */
+  --color-toast-info-background: var(--toast-info-background);
+  --color-toast-info-border: var(--toast-info-border);
+  --color-toast-success-background: var(--toast-success-background);
+  --color-toast-success-border: var(--toast-success-border);
+  --color-toast-warning-background: var(--toast-warning-background);
+  --color-toast-warning-border: var(--toast-warning-border);
+  --color-toast-error-background: var(--toast-error-background);
+  --color-toast-error-border: var(--toast-error-border);
+
+  /* Status Text colors */
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-error: var(--status-error);
+  
+  --color-accept-02: var(--accept-02);
+  --color-success-02: var(--success-02);
+  --color-process-02: var(--process-02);
+  --color-urgent-fail-02: var(--urgent-fail-02);
 }
 
 /* Animation Keyframes */
