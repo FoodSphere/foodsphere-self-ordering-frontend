@@ -2,14 +2,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 
-import { PortalSchema, PortalCreateSchema } from "../validate/portalSchema";
+import { PortalSchema } from "../validate/portalSchema";
 import { useToast } from "@/app/components/ui/toast/use-toast";
 import { setCookie } from "@/libs/cookie";
 import { usePortalStore } from "@/store/portal/portalStore";
-import {
-  IAccessTokenRequest,
-  IGetPortalResponse,
-} from "@/types/portalType";
+import { IAccessTokenRequest } from "@/types/portalType";
 import { EHttpStatusCode } from "@/types/enum";
 
 export default function usePortal() {
@@ -18,6 +15,7 @@ export default function usePortal() {
     portal_id: "",
   });
   const [errors, setErrors] = useState<z.ZodIssue[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { createToken, getPortal } = usePortalStore();
 
   //hooks
@@ -27,20 +25,27 @@ export default function usePortal() {
   // Functions
   const handlePortal = async (data?: IAccessTokenRequest) => {
     const dataToUse = data || portalData;
+    setIsLoading(true);
     try {
       await PortalSchema.parseAsync({
         portal_id: dataToUse.portal_id,
       });
       const response = await createToken(dataToUse);
       if (response.statusCode === EHttpStatusCode.SUCCESS) {
-        toast({
-          icon: "ToastSuccess",
-          variant: "success",
-          description: "Login Successfully.",
-        });
         setCookie("accessToken", response.access_token);
-        router.push("/menu");
+
+        // Add delay for ensuring handle portal state finished
+        setTimeout(() => {
+          toast({
+            icon: "ToastSuccess",
+            variant: "success",
+            description: "Login Successfully.",
+          });
+          setIsLoading(false);
+          router.push("/menu");
+        }, 500);
       } else {
+        setIsLoading(false);
         toast({
           icon: "ToastError",
           variant: "error",
@@ -49,6 +54,7 @@ export default function usePortal() {
         router.push("/not-found");
       }
     } catch (err) {
+      setIsLoading(false);
       if (err instanceof z.ZodError) {
         setErrors(err.errors);
       } else {
@@ -66,11 +72,6 @@ export default function usePortal() {
     try {
       const response = await getPortal();
       if (response.statusCode === EHttpStatusCode.SUCCESS) {
-        toast({
-          icon: "ToastSuccess",
-          variant: "success",
-          description: "Portal Get Successfully.",
-        });
         return response;
       } else {
         toast({
@@ -106,5 +107,6 @@ export default function usePortal() {
     handleGetPortal,
     getError,
     clearFieldError,
+    isLoading,
   };
 }
