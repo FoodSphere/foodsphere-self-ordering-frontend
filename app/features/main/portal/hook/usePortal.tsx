@@ -61,7 +61,7 @@ export default function usePortal() {
         toast({
           icon: "ToastError",
           variant: "error",
-          description: "Incorrect portal ID. Please try again.",
+          description: "Portal failed. Please try again.",
         });
         router.push("/not-found");
       }

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import usePortal from "./hook/usePortal";
+import { clearCookie } from "@/libs/cookie";
 
 interface PortalRenderProps {
   portal_id: string;
@@ -13,6 +14,7 @@ const PortalRender = ({ portal_id }: PortalRenderProps) => {
 
   useEffect(() => {
     if (portal_id) {
+      clearCookie("accessToken");
       setPortalData({ portal_id });
       handlePortal({ portal_id });
     }
@@ -40,12 +42,18 @@ const PortalRender = ({ portal_id }: PortalRenderProps) => {
                 <Loader2 className="w-10 h-10 text-primary-orange-main animate-spin" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-foreground">กำลังเข้าสู่ระบบ</h2>
+            <h2 className="text-3xl font-bold text-foreground">
+              กำลังเข้าสู่ระบบ
+            </h2>
           </div>
 
           <div className="space-y-3">
-            <p className="text-textcolor-gray-01 text-lg font-medium">กรุณารอสักครู่...</p>
-            <p className="text-textcolor-gray-01/60 text-base">เรากำลังเตรียมเมนูอร่อยๆ ให้คุณ</p>
+            <p className="text-textcolor-gray-01 text-lg font-medium">
+              กรุณารอสักครู่...
+            </p>
+            <p className="text-textcolor-gray-01/60 text-base">
+              เรากำลังเตรียมเมนูอร่อยๆ ให้คุณ
+            </p>
           </div>
         </div>
 
@@ -54,7 +62,9 @@ const PortalRender = ({ portal_id }: PortalRenderProps) => {
           <p className="text-[10px] text-textcolor-gray-01/40 uppercase tracking-widest font-bold">
             Portal ID: {portalData.portal_id || portal_id}
           </p>
-          <p className="text-[10px] text-textcolor-gray-01/30 mt-1">© 2024 FoodSphere Ordering System</p>
+          <p className="text-[10px] text-textcolor-gray-01/30 mt-1">
+            © {new Date().getFullYear()} FoodSphere Ordering System
+          </p>
         </div>
       </div>
     </div>
