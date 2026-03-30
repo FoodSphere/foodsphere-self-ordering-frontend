@@ -145,7 +145,7 @@ const MenuRender = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-[100dvh] bg-gray-50 pb-[80px] overflow-hidden">
       <CategoryTabs
         categories={categories}
         activeCategory={activeCategory}
@@ -155,7 +155,7 @@ const MenuRender = () => {
         onSearch={setSearchQuery}
       />
 
-      <main className="flex-1 px-4 pt-4 overflow-y-auto pb-20 mb-20">
+      <main className="flex-1 px-4 pt-4 overflow-y-auto min-h-0 custom-scrollbar">
         <div>
           {categories.slice(1).map((category) => {
             const categoryItems = filteredItems.filter((item) => {
