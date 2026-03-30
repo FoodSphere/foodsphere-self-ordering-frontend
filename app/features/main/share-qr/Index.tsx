@@ -1,30 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import QRCode from "@/app/components/QrCode";
 import Link from "next/link";
 import usePortal from "@/app/features/main/portal/hook/usePortal";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast/use-toast";
 import { apiGet } from "@/services/common";
-import { Bill } from "@/types/billType";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
 import { EBillStatus } from "@/types/enum";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { getCookie } from "@/libs/cookie";
+import * as signalR from "@microsoft/signalr";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
 
 const ShareQrRender = () => {
+  const router = useRouter();
   const { handleGetPortal } = usePortal();
 
   const [qrData, setQrData] = useState<string | null>(null);
-  const [bill, setBill] = useState<Bill | null>(null);
+  const billRef = useRef<Bill | null>(null);
 
   const fetchQRData = async () => {
     const response = await handleGetPortal();
     if (response?.id != "") {
       const data = `${BASE_URL}/portals/${response?.id}`;
       setQrData(data);
+      toast({
+        title: "Success",
+        description: "QR data fetched successfully",
+        variant: "success",
+      });
     } else {
-      toast.error("Failed to get portal");
+      toast({
+        title: "Error",
+        description: "Failed to get portal",
+        variant: "error",
+      });
       setQrData(null);
     }
   };
@@ -33,21 +45,50 @@ const ShareQrRender = () => {
     const response = await apiGet("/bill");
     const billData = response?.data;
     if (billData != null) {
-      setBill(billData);
+      billRef.current = billData;
       if (billData.status === EBillStatus.PAID) {
-        return redirect(`/payment/success?bill_id=${billData.id}`);
+        router.push(`/payment/success?bill_id=${billData.id}`);
       } else if (billData.status === EBillStatus.COMPLETED) {
-        return redirect(`/thank-you`);
+        router.push(`/thank-you`);
       }
     } else {
-      toast.error("Failed to get bill");
-      setBill(null);
+      toast({
+        title: "Error",
+        description: "Failed to get bill",
+        variant: "error",
+      });
+      billRef.current = null;
     }
   };
 
   useEffect(() => {
     fetchQRData();
     fetchBill();
+
+    const accessToken = getCookie("accessToken");
+
+    const connect = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+        accessTokenFactory: () => `${accessToken}`,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connect
+      .start()
+      .catch((err) =>
+        console.error("Error while connecting to SignalR Hub:", err)
+      );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      const currentBill = billRef.current;
+      if (currentBill && updatedBill.resource.id === currentBill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          router.push(`/payment/success?bill_id=${currentBill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          router.push("/thank-you");
+        }
+      }
+    });
   }, []);
 
   return (
@@ -55,7 +96,7 @@ const ShareQrRender = () => {
       <h1 className="text-2xl font-bold">Share QR</h1>
 
       <div className="bg-[var(--primary-orange-main)] px-6 py-2 rounded-lg">
-        <p className="text-lg font-bold text-white">Table {bill?.table.name}</p>
+        <p className="text-lg font-bold text-white">Table {billRef.current?.table.name}</p>
       </div>
 
       {qrData ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import Link from "next/link";
 
@@ -9,7 +9,12 @@ import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
 import { getCookie } from "@/libs/cookie";
 import { apiGet, apiPut } from "@/services/common";
 import { CartItem } from "@/types/cartType";
-import { EBillStatus, EOrderStatus, EOrderStatusString, OrderStatus } from "@/types/enum";
+import {
+  EBillStatus,
+  EOrderStatus,
+  EOrderStatusString,
+  OrderStatus,
+} from "@/types/enum";
 import {
   OrderCreatedFromSignalR,
   OrderGroupResponse,
@@ -22,8 +27,8 @@ import {
 
 import MyOrderGroupCard from "../../../components/MyOrderGroupCard";
 import OrderStatusTabs from "../../../components/OrderStatusTabs";
-import { Bill } from "@/types/billType";
-import { redirect } from "next/navigation";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import { useRouter } from "next/navigation";
 
 const orderStatusMap: OrderStatus = {
   [EOrderStatusString.ALL]: EOrderStatus.ALL,
@@ -34,8 +39,9 @@ const orderStatusMap: OrderStatus = {
 };
 
 const MyOrderRender = () => {
+  const router = useRouter();
   const [myOrders, setMyOrders] = useState<OrderGroupWithMenuMapping[]>([]);
-  const [bill, setBill] = useState<Bill | null>(null);
+  const billRef = useRef<Bill | null>(null);
 
   const [selectedOrderGroupId, setSelectedOrderGroupId] = useState<
     number | null
@@ -107,12 +113,12 @@ const MyOrderRender = () => {
   const fetchBill = async () => {
     const response = await apiGet("/bill");
     const billData = response?.data ?? null;
-    setBill(billData);
+    billRef.current = billData;
 
     if (billData?.status === EBillStatus.PAID) {
-      return redirect(`/payment/success?bill_id=${billData.id}`);
+      router.push(`/payment/success?bill_id=${billData.id}`);
     } else if (billData?.status === EBillStatus.COMPLETED) {
-      return redirect(`/thank-you`);
+      router.push(`/thank-you`);
     }
   };
 
@@ -134,29 +140,46 @@ const MyOrderRender = () => {
         console.error("Error while connecting to SignalR Hub:", err)
       );
 
-    connect.on("order_created", async (createdOrder: OrderCreatedFromSignalR) => {
-      const newOrder: OrderGroupWithMenuMapping = {
-        id: createdOrder.id,
-        create_time: createdOrder.create_time,
-        update_time: createdOrder.update_time,
-        items: await mapOrderItemsToOrderMenuItems(createdOrder.items),
-        status: createdOrder.status,
-      };
-      setMyOrders((prevOrders) => [...prevOrders, newOrder]);
-    });
+    connect.on(
+      "order_created",
+      async (createdOrder: OrderCreatedFromSignalR) => {
+        const newOrder: OrderGroupWithMenuMapping = {
+          id: createdOrder.id,
+          create_time: createdOrder.create_time,
+          update_time: createdOrder.update_time,
+          items: await mapOrderItemsToOrderMenuItems(createdOrder.items),
+          status: createdOrder.status,
+        };
+        setMyOrders((prevOrders) => [...prevOrders, newOrder]);
+      }
+    );
 
-    connect.on("order_status_updated", async (updatedOrder: OrderUpdateFromSignalR) => {
-      setMyOrders((prevOrders) => [
-        ...prevOrders.map((order) => {
-          if (order.id === updatedOrder.resource.id) {
-            return {
-              ...order,
-              status: updatedOrder.status,
-            };
-          }
-          return order;
-        })
-      ]);
+    connect.on(
+      "order_status_updated",
+      async (updatedOrder: OrderUpdateFromSignalR) => {
+        setMyOrders((prevOrders) => [
+          ...prevOrders.map((order) => {
+            if (order.id === updatedOrder.resource.id) {
+              return {
+                ...order,
+                status: updatedOrder.status,
+              };
+            }
+            return order;
+          }),
+        ]);
+      }
+    );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      const currentBill = billRef.current;
+      if (currentBill && updatedBill.resource.id === currentBill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          router.push(`/payment/success?bill_id=${currentBill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          router.push("/thank-you");
+        }
+      }
     });
 
     return () => {
@@ -210,7 +233,7 @@ const MyOrderRender = () => {
         <OrderStatusTabs
           orderStatus={Object.keys(orderStatusMap) as EOrderStatusString[]}
           activeOrderStatus={activeTab}
-          tableName={bill?.table.name ?? ""}
+          tableName={billRef.current?.table.name ?? ""}
           onSelectOrderStatus={handleSelectOrderStatus}
         />
         <main className="flex-1 px-4 pt-4 overflow-y-auto min-h-0 custom-scrollbar">

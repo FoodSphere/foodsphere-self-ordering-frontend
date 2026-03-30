@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, History, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import CartItemCard from "@/app/components/CartItemCard";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
@@ -13,8 +13,12 @@ import { apiGet } from "@/services/common";
 import { CartItem } from "@/types/cartType";
 import { EBillStatus } from "@/types/enum";
 import { OrderMenuItem } from "@/types/orderType";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import { getCookie } from "@/libs/cookie";
+import * as signalR from "@microsoft/signalr";
 
 const CartRender = () => {
+  const router = useRouter();
   const {
     cartItems,
     updateQuantity,
@@ -25,6 +29,7 @@ const CartRender = () => {
     placeOrder,
   } = useCart();
 
+  const billRef = useRef<Bill | null>(null);
   const [selectedItem, setSelectedItem] = useState<CartItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -51,16 +56,42 @@ const CartRender = () => {
     const fetchBill = async () => {
       const response = await apiGet(`/bill`);
       const billData = response?.data;
+      billRef.current = billData;
 
       if (billData?.status === EBillStatus.PAID) {
         clearCart();
-        return redirect(`/payment/success?bill_id=${billData.id}`);
+        router.push(`/payment/success?bill_id=${billData.id}`);
       } else if (billData?.status === EBillStatus.COMPLETED) {
         clearCart();
-        return redirect("/thank-you");
+        router.push("/thank-you");
       }
     };
     fetchBill();
+
+    const accessToken = getCookie("accessToken");
+
+    const connect = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+        accessTokenFactory: () => `${accessToken}`,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connect
+      .start()
+      .catch((err) =>
+        console.error("Error while connecting to SignalR Hub:", err)
+      );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      const currentBill = billRef.current;
+      if (currentBill && updatedBill.resource.id === currentBill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          router.push(`/payment/success?bill_id=${currentBill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          router.push("/thank-you");
+        }
+      }
+    });
   });
 
   return (

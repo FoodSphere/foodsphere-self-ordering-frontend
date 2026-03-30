@@ -174,7 +174,7 @@ const MyOrderGroupCard = ({
             addSuffix: true,
           })}
         </span>
-        <span className="text-xl font-bold text-[var(--primary-orange-main)]">
+        <span className="text-lg font-bold text-[var(--primary-orange-main)]">
           Total: ฿
           {orderGroup.items
             .reduce((acc, item) => acc + item.price * item.quantity, 0)
