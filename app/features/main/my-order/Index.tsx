@@ -206,14 +206,14 @@ const MyOrderRender = () => {
 
   return (
     <div>
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className="flex flex-col h-[100dvh] bg-gray-50 pb-[80px] overflow-hidden">
         <OrderStatusTabs
           orderStatus={Object.keys(orderStatusMap) as EOrderStatusString[]}
           activeOrderStatus={activeTab}
           tableName={bill?.table.name ?? ""}
           onSelectOrderStatus={handleSelectOrderStatus}
         />
-        <main className="flex-1 px-4 pt-4 overflow-y-auto pb-20 mb-20">
+        <main className="flex-1 px-4 pt-4 overflow-y-auto min-h-0 custom-scrollbar">
           {filteredOrders && filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
               {activeTab === EOrderStatusString.ALL ? (
