@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { Banknote, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toast } from "@/app/components/ui/toast/use-toast";
 
-import { useMenu } from "@/app/context/MenuContext";
 import { getCookie } from "@/libs/cookie";
 import { apiDelete, apiGet, apiPost } from "@/services/common";
 import { checkout } from "@/services/stripe";
@@ -23,6 +22,8 @@ import {
 import {
   OrderGroupResponse,
   OrderGroupWithMenuMapping,
+  OrderItem,
+  OrderMenuItem,
   OrderUpdateFromSignalR,
 } from "@/types/orderType";
 import {
@@ -33,12 +34,12 @@ import {
 import WaitingModal from "./components/WaitingModal";
 
 const PaymentRender = () => {
-  const { mapOrderItemsToOrderMenuItems } = useMenu();
-
   const [paymentMethod, setPaymentMethod] = useState<EPaymentMethod>(
     EPaymentMethod.PROMPTPAY
   );
-  const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+  const [myCompletedOrders, setMyCompletedOrders] = useState<
+    OrderGroupWithMenuMapping[]
+  >([]);
   const [bill, setBill] = useState<Bill | null>(null);
 
   const [connection, setConnection] = useState<signalR.HubConnection | null>(
@@ -48,11 +49,49 @@ const PaymentRender = () => {
   const [requestService, setRequestService] =
     useState<ServiceRequestResponse | null>(null);
 
+  const mapOrderItemsToOrderMenuItems = async (
+    orderItems: OrderItem[]
+  ): Promise<OrderMenuItem[]> => {
+    const promises = orderItems.map(async (orderItem) => {
+      const response = await apiGet(`/menus/${orderItem.menu_id}`);
+      const menu = response?.data ?? null;
+      if (menu) {
+        return {
+          id: orderItem.id,
+          menu_id: orderItem.menu_id,
+          name: menu.name,
+          image_url: menu.image_url,
+          note: orderItem.note ?? null,
+          quantity: orderItem.quantity,
+          price: menu.price,
+          description: menu.description,
+          components: menu.components,
+        } as OrderMenuItem;
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((item): item is OrderMenuItem => item !== null);
+  };
+
   const fetchOrders = async () => {
     const response = await apiGet(
       `/orders?status=${EOrderStatus.COMPLETED}&status=${EOrderStatus.COOKING}`
     );
-    setRawOrders(response?.data ?? []);
+    const orders = response?.data ?? [];
+
+    const mappedOrders = await Promise.all(
+      orders.map(async (order: OrderGroupResponse) => ({
+        id: order.id,
+        items: await mapOrderItemsToOrderMenuItems(order.items),
+        status: order.status,
+        create_time: order.create_time,
+        update_time: order.update_time,
+      }))
+    );
+
+    setMyCompletedOrders(mappedOrders);
   };
 
   const fetchBill = async () => {
@@ -99,7 +138,9 @@ const PaymentRender = () => {
       "order_status_updated",
       async (updatedOrder: OrderUpdateFromSignalR) => {
         if (
-          completedOrders.find((order) => order.id === updatedOrder.resource.id)
+          myCompletedOrders.find(
+            (order) => order.id === updatedOrder.resource.id
+          )
         )
           return;
 
@@ -108,14 +149,17 @@ const PaymentRender = () => {
 
         if (!order) return;
 
-        const newCompletedOrder: OrderGroupResponse = {
+        const newCompletedOrder: OrderGroupWithMenuMapping = {
           id: order.id,
           create_time: order.create_time,
           update_time: order.update_time,
-          items: order.items,
+          items: await mapOrderItemsToOrderMenuItems(order.items),
           status: order.status,
         };
-        setRawOrders((prevOrders) => [...prevOrders, newCompletedOrder]);
+        setMyCompletedOrders((prevOrders) => [
+          ...prevOrders,
+          newCompletedOrder,
+        ]);
       }
     );
 
@@ -124,31 +168,26 @@ const PaymentRender = () => {
     };
   }, []);
 
-  const completedOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
-    return rawOrders.map((order: OrderGroupResponse) => ({
-      id: order.id,
-      items: mapOrderItemsToOrderMenuItems(order.items),
-      status: order.status,
-      create_time: order.create_time,
-      update_time: order.update_time,
-    }));
-  }, [rawOrders, mapOrderItemsToOrderMenuItems]);
-
   // Calculate totals for food (only completed and cooking items)
-  const foodTotalItems = rawOrders.reduce(
+  const foodTotalItems = myCompletedOrders.reduce(
     (acc, order) => acc + (order.items[0]?.quantity ?? 0),
     0
   );
-  const foodTotalPrice = rawOrders.reduce(
+  const foodTotalPrice = myCompletedOrders.reduce(
     (acc, order) =>
-      acc +
-      (order.items[0]?.price_snapshot ?? 0) * (order.items[0]?.quantity ?? 0),
+      acc + (order.items[0]?.price ?? 0) * (order.items[0]?.quantity ?? 0),
     0
   );
 
   const handlePay = () => {
-    if (completedOrders.length === 0) return;
+    if (myCompletedOrders.length === 0) return;
     if (!bill) return;
+
+    const foodTotalPrice = myCompletedOrders.reduce(
+      (acc, order) =>
+        acc + (order.items[0]?.price ?? 0) * (order.items[0]?.quantity ?? 0),
+      0
+    );
 
     if (paymentMethod === EPaymentMethod.CASH) {
       createServiceRequest(EServiceRequestType.CASH_PAYMENT);
@@ -229,7 +268,7 @@ const PaymentRender = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col pb-[80px] overflow-y-hidden">
+    <div className="h-[100dvh] bg-gray-50 flex flex-col pb-[80px] overflow-y-hidden">
       {/* Header */}
       <div className="bg-white px-4 py-3 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -250,8 +289,8 @@ const PaymentRender = () => {
         )}
       </div>
 
-      <main className="flex-1 overflow-hidden flex flex-col px-4 pt-4">
-        {completedOrders.length === 0 ? (
+      <main className="flex-1 overflow-hidden flex flex-col px-4 pt-4 min-h-0">
+        {myCompletedOrders.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-2">
             <p className="text-lg font-medium">No completed orders.</p>
             <Link
@@ -268,7 +307,7 @@ const PaymentRender = () => {
               <h2 className="text-lg font-bold mb-4 text-black">My Order</h2>
 
               <div className="space-y-6">
-                {completedOrders.map((order) => {
+                {myCompletedOrders.map((order) => {
                   const item = order.items?.[0];
                   if (!item) return null;
 
@@ -384,7 +423,7 @@ const PaymentRender = () => {
       </main>
 
       {/* Footer Actions - Only show if there are items */}
-      {completedOrders.length > 0 && (
+      {myCompletedOrders.length > 0 && (
         <div className="px-4 pb-4 bg-gray-50">
           <div className="bg-white p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-gray-100">
             <div className="flex justify-between items-center mb-4">
@@ -396,11 +435,11 @@ const PaymentRender = () => {
               </span>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {/* Pay Button */}
               <button
                 onClick={handlePay}
-                className="w-full bg-[var(--primary-orange-main)] text-white py-3 rounded-lg font-bold flex items-center justify-center shadow-md cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+                className="w-full bg-[var(--primary-orange-main)] text-white py-2.5 rounded-lg font-bold text-base flex items-center justify-center shadow-md cursor-pointer hover:opacity-90 active:scale-[0.98] transition-all"
               >
                 Pay Now
               </button>
@@ -408,7 +447,7 @@ const PaymentRender = () => {
               {/* Call Waiter - Secondary Action */}
               <button
                 onClick={handleCallWaiter}
-                className="w-full text-gray-500 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                className="w-full text-gray-600 text-sm font-semibold py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
               >
                 Call Waiter
               </button>
@@ -418,7 +457,7 @@ const PaymentRender = () => {
       )}
 
       {/* Call Waiter - Secondary Action */}
-      {completedOrders.length === 0 && (
+      {myCompletedOrders.length === 0 && (
         <div className="px-4 pb-4 bg-gray-50 flex-shrink-0">
           <div className="bg-white p-4 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.1)] border border-gray-100">
             <div className="flex flex-col gap-3">

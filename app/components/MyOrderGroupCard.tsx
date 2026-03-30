@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { ChevronUp, Clock, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 
 import { EOrderStatus } from "@/types/enum";
 import { OrderGroupWithMenuMapping, OrderMenuItem } from "@/types/orderType";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 interface MyOrderItemCardProps {
   orderGroupId: number;
@@ -82,7 +83,7 @@ const MyOrderItemCard = ({
 
         <div className="flex justify-between items-end">
           <span className="font-bold text-[var(--primary-orange-main)]">
-            ฿{(myOrderItem.price * myOrderItem.quantity).toFixed(2)}
+            ฿{myOrderItem.price.toFixed(2)}
           </span>
 
           <div className="flex items-center gap-3 bg-gray-50 rounded-full px-1 border border-gray-100">
@@ -106,15 +107,15 @@ const MyOrderGroupCard = ({
   const getStatusBadge = (status: EOrderStatus) => {
     switch (status) {
       case EOrderStatus.DRAFT:
-        return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1";
+        return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1 border border-yellow-300";
       case EOrderStatus.PENDING:
-        return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1";
+        return "text-yellow-500 bg-yellow-100 rounded-full px-2 py-1 border border-yellow-300";
       case EOrderStatus.COOKING:
-        return "text-blue-500 bg-blue-100 rounded-full px-2 py-1";
+        return "text-blue-500 bg-blue-100 rounded-full px-2 py-1 border border-blue-300";
       case EOrderStatus.COMPLETED:
-        return "text-green-500 bg-green-100 rounded-full px-2 py-1";
+        return "text-green-500 bg-green-100 rounded-full px-2 py-1 border border-green-300";
       case EOrderStatus.CANCELLED:
-        return "text-red-500 bg-red-100 rounded-full px-2 py-1";
+        return "text-red-500 bg-red-100 rounded-full px-2 py-1 border border-red-300";
       default:
         return "text-gray-500";
     }
@@ -165,6 +166,20 @@ const MyOrderGroupCard = ({
         ) : (
           <div className="text-center text-gray-500">No items</div>
         )}
+      </div>
+      <div className="flex justify-between mt-2">
+        <span className="text-sm text-gray-500 flex items-center gap-2 pl-2">
+          <Clock size={16} />
+          {formatDistanceToNow(parseISO(orderGroup.create_time), {
+            addSuffix: true,
+          })}
+        </span>
+        <span className="text-xl font-bold text-[var(--primary-orange-main)]">
+          Total: ฿
+          {orderGroup.items
+            .reduce((acc, item) => acc + item.price * item.quantity, 0)
+            .toFixed(2)}
+        </span>
       </div>
     </div>
   );

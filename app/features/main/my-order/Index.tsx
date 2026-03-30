@@ -6,7 +6,6 @@ import Link from "next/link";
 
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
-import { useMenu } from "@/app/context/MenuContext";
 import { getCookie } from "@/libs/cookie";
 import { apiGet, apiPut } from "@/services/common";
 import { CartItem } from "@/types/cartType";
@@ -15,6 +14,7 @@ import {
   OrderCreatedFromSignalR,
   OrderGroupResponse,
   OrderGroupWithMenuMapping,
+  OrderItem,
   OrderItemPutRequest,
   OrderMenuItem,
   OrderUpdateFromSignalR,
@@ -22,7 +22,7 @@ import {
 
 import MyOrderGroupCard from "../../../components/MyOrderGroupCard";
 import OrderStatusTabs from "../../../components/OrderStatusTabs";
-import { Bill, BillUpdateFromSignalR } from "@/types/billType";
+import { Bill } from "@/types/billType";
 import { redirect } from "next/navigation";
 
 const orderStatusMap: OrderStatus = {
@@ -34,9 +34,7 @@ const orderStatusMap: OrderStatus = {
 };
 
 const MyOrderRender = () => {
-  const { mapOrderItemsToOrderMenuItems } = useMenu();
-
-  const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+  const [myOrders, setMyOrders] = useState<OrderGroupWithMenuMapping[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
 
   const [selectedOrderGroupId, setSelectedOrderGroupId] = useState<
@@ -52,19 +50,6 @@ const MyOrderRender = () => {
     EOrderStatusString.ALL
   );
 
-  const myOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
-    return rawOrders.map((order: OrderGroupResponse) => ({
-      id: order.id,
-      items: mapOrderItemsToOrderMenuItems(order.items),
-      status:
-        order.status === EOrderStatus.DRAFT
-          ? EOrderStatus.PENDING
-          : order.status,
-      create_time: order.create_time,
-      update_time: order.update_time,
-    }));
-  }, [rawOrders, mapOrderItemsToOrderMenuItems]);
-
   const filteredOrders = useMemo(() => {
     if (activeTab === EOrderStatusString.ALL) {
       return myOrders;
@@ -73,9 +58,50 @@ const MyOrderRender = () => {
     return myOrders.filter((item) => item.status === targetStatus);
   }, [myOrders, activeTab]);
 
+  const mapOrderItemsToOrderMenuItems = async (
+    orderItems: OrderItem[]
+  ): Promise<OrderMenuItem[]> => {
+    const promises = orderItems.map(async (orderItem) => {
+      const response = await apiGet(`/menus/${orderItem.menu_id}`);
+      const menu = response?.data ?? null;
+      if (menu) {
+        return {
+          id: orderItem.id,
+          menu_id: orderItem.menu_id,
+          name: menu.name,
+          image_url: menu.image_url,
+          note: orderItem.note ?? null,
+          quantity: orderItem.quantity,
+          price: menu.price,
+          description: menu.description,
+          components: menu.components,
+        } as OrderMenuItem;
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((item): item is OrderMenuItem => item !== null);
+  };
+
   const fetchOrders = async () => {
     const response = await apiGet("/orders");
-    setRawOrders(response?.data ?? []);
+    const orders = response?.data ?? [];
+
+    const mappedOrders = await Promise.all(
+      orders.map(async (order: OrderGroupResponse) => ({
+        id: order.id,
+        items: await mapOrderItemsToOrderMenuItems(order.items),
+        status:
+          order.status === EOrderStatus.DRAFT
+            ? EOrderStatus.PENDING
+            : order.status,
+        create_time: order.create_time,
+        update_time: order.update_time,
+      }))
+    );
+
+    setMyOrders(mappedOrders);
   };
 
   const fetchBill = async () => {
@@ -108,19 +134,19 @@ const MyOrderRender = () => {
         console.error("Error while connecting to SignalR Hub:", err)
       );
 
-    connect.on("order_created", (createdOrder: OrderCreatedFromSignalR) => {
-      const newOrder: OrderGroupResponse = {
+    connect.on("order_created", async (createdOrder: OrderCreatedFromSignalR) => {
+      const newOrder: OrderGroupWithMenuMapping = {
         id: createdOrder.id,
         create_time: createdOrder.create_time,
         update_time: createdOrder.update_time,
-        items: createdOrder.items,
+        items: await mapOrderItemsToOrderMenuItems(createdOrder.items),
         status: createdOrder.status,
       };
-      setRawOrders((prevOrders) => [...prevOrders, newOrder]);
+      setMyOrders((prevOrders) => [...prevOrders, newOrder]);
     });
 
-    connect.on("order_status_updated", (updatedOrder: OrderUpdateFromSignalR) => {
-      setRawOrders((prevOrders) => [
+    connect.on("order_status_updated", async (updatedOrder: OrderUpdateFromSignalR) => {
+      setMyOrders((prevOrders) => [
         ...prevOrders.map((order) => {
           if (order.id === updatedOrder.resource.id) {
             return {

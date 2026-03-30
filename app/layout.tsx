@@ -14,7 +14,6 @@ export const metadata: Metadata = {
 };
 
 import { CartProvider } from "@/app/context/CartContext";
-import { MenuProvider } from "@/app/context/MenuContext";
 import { Toaster } from "@/app/components/ui/toast/toaster";
 
 export default function RootLayout({
@@ -31,9 +30,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${notoSanThai.className}`}>
-        <MenuProvider>
-          <CartProvider>{children}</CartProvider>
-        </MenuProvider>
+        <CartProvider>{children}</CartProvider>
         <Toaster />
       </body>
     </html>

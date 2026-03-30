@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Clock } from "lucide-react";
-import { useMenu } from "@/app/context/MenuContext";
-import { OrderGroupResponse, OrderGroupWithMenuMapping } from "@/types/orderType";
+import {
+  OrderGroupResponse,
+  OrderGroupWithMenuMapping,
+  OrderItem,
+  OrderMenuItem,
+} from "@/types/orderType";
 import { apiGet } from "@/services/common";
+import { EOrderStatus, EOrderStatusString } from "@/types/enum";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 interface OrderHistoryModalProps {
   isOpen: boolean;
@@ -12,28 +18,58 @@ interface OrderHistoryModalProps {
 }
 
 const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
-  const { mapOrderItemsToOrderMenuItems } = useMenu();
-  const [rawOrders, setRawOrders] = useState<OrderGroupResponse[]>([]);
+  const [myOrders, setMyOrders] = useState<OrderGroupWithMenuMapping[]>([]);
 
-  const myOrders: OrderGroupWithMenuMapping[] = useMemo(() => {
-      return rawOrders.map((order: OrderGroupResponse) => ({
+  const mapOrderItemsToOrderMenuItems = async (
+    orderItems: OrderItem[]
+  ): Promise<OrderMenuItem[]> => {
+    const promises = orderItems.map(async (orderItem) => {
+      const response = await apiGet(`/menus/${orderItem.menu_id}`);
+      const menu = response?.data ?? null;
+      if (menu) {
+        return {
+          id: orderItem.id,
+          menu_id: orderItem.menu_id,
+          name: menu.name,
+          image_url: menu.image_url,
+          note: orderItem.note ?? null,
+          quantity: orderItem.quantity,
+          price: menu.price,
+          description: menu.description,
+          components: menu.components,
+        } as OrderMenuItem;
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((item): item is OrderMenuItem => item !== null);
+  };
+
+  const fetchOrders = async () => {
+    const response = await apiGet("/orders");
+    const orders = response?.data ?? [];
+
+    const mappedOrders = await Promise.all(
+      orders.map(async (order: OrderGroupResponse) => ({
         id: order.id,
-        items: mapOrderItemsToOrderMenuItems(order.items),
-        status: order.status,
+        items: await mapOrderItemsToOrderMenuItems(order.items),
+        status:
+          order.status === EOrderStatus.DRAFT
+            ? EOrderStatus.PENDING
+            : order.status,
         create_time: order.create_time,
         update_time: order.update_time,
-      }));
-    }, [rawOrders, mapOrderItemsToOrderMenuItems]);
-  
-    const fetchOrders = async () => {
-      const response = await apiGet("/orders");
-      setRawOrders(response?.data ?? []);
-    };
-  
-    useEffect(() => {
-      fetchOrders();
-    }, []);
-  
+      }))
+    );
+
+    setMyOrders(mappedOrders);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -69,30 +105,40 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
                     {order.items.length > 0 && (
                       <div className="flex flex-col text-gray-600 text-base md:text-sm space-y-1">
                         {order.items.map((item: any, idx: number) => {
-                          const getStatusColor = (status: string) => {
+                          const getStatusBadge = (status: EOrderStatus) => {
                             switch (status) {
-                              case "cooking":
-                                return "text-blue-500";
-                              case "completed":
-                                return "text-green-500";
-                              case "canceled":
-                                return "text-red-500";
+                              case EOrderStatus.COOKING:
+                                return (
+                                  <span className="font-semibold text-blue-500">
+                                    ({EOrderStatusString.COOKING})
+                                  </span>
+                                );
+                              case EOrderStatus.COMPLETED:
+                                return (
+                                  <span className="font-semibold text-green-500">
+                                    ({EOrderStatusString.COMPLETED})
+                                  </span>
+                                );
+                              case EOrderStatus.CANCELLED:
+                                return (
+                                  <span className="font-semibold text-red-500">
+                                    ({EOrderStatusString.CANCELLED})
+                                  </span>
+                                );
                               default:
-                                return "text-gray-500";
+                                return (
+                                  <span className="font-semibold text-yellow-500">
+                                    ({EOrderStatusString.PENDING})
+                                  </span>
+                                );
                             }
                           };
 
                           return (
                             <div key={idx}>
                               <p key={idx}>
-                                - x{item.quantity} {item.title}{" "}
-                                <span
-                                  className={`font-semibold ${getStatusColor(
-                                    item.status
-                                  )}`}
-                                >
-                                  ({item.status})
-                                </span>
+                                - x{item.quantity} {item.name}{" "}
+                                {getStatusBadge(order.status)}
                               </p>
                             </div>
                           );
@@ -114,7 +160,11 @@ const OrderHistoryModal = ({ isOpen, onClose }: OrderHistoryModalProps) => {
                   </span>
                   <div className="flex items-center gap-1.5 text-gray-500 md:text-[var(--primary-orange-main)] text-sm font-medium mt-1">
                     <Clock size={16} />
-                    <span>{order.create_time}</span>
+                    <span>
+                      {formatDistanceToNow(parseISO(order.create_time), {
+                        addSuffix: true,
+                      })}
+                    </span>
                   </div>
                 </div>
               </div>
