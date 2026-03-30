@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { CheckCircle2, ReceiptText } from "lucide-react";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 import ConfirmationModal from "@/app/components/ConfirmationModal";
@@ -100,16 +100,18 @@ const PaymentSuccessRender = () => {
   const [payment, setPayment] = useState<IPaymentCreateFromSignalR | null>(
     null
   );
-  const [bill, setBill] = useState<Bill | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCompleteBillConfirmation, setShowCompleteBillConfirmation] =
     useState<boolean>(false);
+  const billRef = useRef<Bill | null>(null);
 
   const fetchBill = async () => {
     try {
       const response = await apiGet(`/bill`);
       const billData = response?.data ?? null;
-      setBill(billData);
+      billRef.current = billData;
+      console.log("billData", billData);
+      console.log("billRef.current", billRef.current);
 
       if (billData?.status === EBillStatus.PAID) {
         toast({
@@ -176,10 +178,15 @@ const PaymentSuccessRender = () => {
       );
 
     connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
-      if (bill && updatedBill.resource.id === bill.id) {
+      console.log("bill_status_updated", updatedBill);
+      console.log("bill", billRef.current);
+      if (billRef.current && updatedBill.resource.id === billRef.current.id) {
+        console.log("id");
         if (updatedBill.status === EBillStatus.PAID) {
-          router.push(`/payment/success?bill_id=${bill.id}`);
+          console.log("paid");
+          router.push(`/payment/success?bill_id=${billRef.current.id}`);
         } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          console.log("completed");
           router.push("/thank-you");
         }
       }
@@ -205,7 +212,7 @@ const PaymentSuccessRender = () => {
 
   if (isLoading) return;
 
-  if (!bill_id || !bill || bill_id !== bill.id || !payment) {
+  if (!bill_id || !billRef.current || bill_id !== billRef.current?.id || !payment) {
     router.push("/payment/failed/invalid_session");
     return;
   }
@@ -224,7 +231,7 @@ const PaymentSuccessRender = () => {
         />
       )}
       <PaymentSuccess
-        table_name={bill.table.name}
+        table_name={billRef.current.table.name}
         status={payment.status as EPaymentStatus}
         amount_total={payment.amount}
         payment_method={payment.payment_method as EPaymentMethod}

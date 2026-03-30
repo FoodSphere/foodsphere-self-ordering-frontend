@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import { Banknote, ChevronLeft, ChevronRight, QrCode } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "@/app/components/ui/toast/use-toast";
 
 import { getCookie } from "@/libs/cookie";
@@ -34,13 +34,14 @@ import {
 import WaitingModal from "./components/WaitingModal";
 
 const PaymentRender = () => {
+  const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<EPaymentMethod>(
     EPaymentMethod.PROMPTPAY
   );
   const [myCompletedOrders, setMyCompletedOrders] = useState<
     OrderGroupWithMenuMapping[]
   >([]);
-  const [bill, setBill] = useState<Bill | null>(null);
+  const billRef = useRef<Bill | null>(null);
 
   const [connection, setConnection] = useState<signalR.HubConnection | null>(
     null
@@ -97,12 +98,12 @@ const PaymentRender = () => {
   const fetchBill = async () => {
     const response = await apiGet(`/bill`);
     const billData = response?.data ?? null;
-    setBill(billData);
+    billRef.current = billData;
 
     if (billData?.status === EBillStatus.PAID) {
-      return redirect(`/payment/success?bill_id=${billData.id}`);
+      router.push(`/payment/success?bill_id=${billData.id}`);
     } else if (billData?.status === EBillStatus.COMPLETED) {
-      return redirect(`/thank-you`);
+      router.push(`/thank-you`);
     }
   };
 
@@ -125,11 +126,12 @@ const PaymentRender = () => {
       );
 
     connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
-      if (bill && updatedBill.resource.id === bill.id) {
+      const currentBill = billRef.current;
+      if (currentBill && updatedBill.resource.id === currentBill.id) {
         if (updatedBill.status === EBillStatus.PAID) {
-          return redirect(`/payment/success?bill_id=${bill.id}`);
+          router.push(`/payment/success?bill_id=${currentBill.id}`);
         } else if (updatedBill.status === EBillStatus.COMPLETED) {
-          return redirect("/thank-you");
+          router.push("/thank-you");
         }
       }
     });
@@ -181,7 +183,7 @@ const PaymentRender = () => {
 
   const handlePay = () => {
     if (myCompletedOrders.length === 0) return;
-    if (!bill) return;
+    if (!billRef.current) return;
 
     const foodTotalPrice = myCompletedOrders.reduce(
       (acc, order) =>
@@ -193,7 +195,7 @@ const PaymentRender = () => {
       createServiceRequest(EServiceRequestType.CASH_PAYMENT);
       return;
     } else if (paymentMethod === EPaymentMethod.PROMPTPAY) {
-      checkout(foodTotalPrice, bill);
+      checkout(foodTotalPrice, billRef.current);
     } else {
     }
   };
@@ -280,10 +282,10 @@ const PaymentRender = () => {
           </Link>
           <h1 className="text-xl font-bold text-gray-800">Payment</h1>
         </div>
-        {bill?.table.name && (
+        {billRef.current?.table.name && (
           <div className="bg-[var(--primary-orange-main)] px-4 py-2 rounded-lg">
             <p className="text-sm font-bold text-white">
-              Table {bill.table.name}
+              Table {billRef.current.table.name}
             </p>
           </div>
         )}

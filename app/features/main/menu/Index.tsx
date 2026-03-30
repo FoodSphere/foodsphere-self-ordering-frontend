@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import CategoryTabs from "@/app/components/CategoryTabs";
 import MenuItemCard from "@/app/components/MenuItemCard";
 import OrderCustomizationModal from "@/app/components/OrderCustomizationModal";
@@ -15,16 +15,19 @@ import {
 import { OrderMenuItem } from "@/types/orderType";
 import { apiGet } from "@/services/common";
 import { tag } from "@/types/menuType";
-import { Bill } from "@/types/billType";
+import { Bill, BillUpdateFromSignalR } from "@/types/billType";
 import { EBillStatus, EMenuStatus } from "@/types/enum";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Restaurant } from "@/types/restaurantType";
+import { getCookie } from "@/libs/cookie";
+import * as signalR from "@microsoft/signalr";
 
 const MenuRender = () => {
+  const router = useRouter();
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [bill, setBill] = useState<Bill | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const billRef = useRef<Bill | null>(null);
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +85,9 @@ const MenuRender = () => {
   });
 
   const fetchMenus = async () => {
-    const res = await apiGet(`/menus?stock_availability=true&status=${EMenuStatus.ACTIVE}`);
+    const res = await apiGet(
+      `/menus?stock_availability=true&status=${EMenuStatus.ACTIVE}`
+    );
     const menusData = res?.data ?? [];
 
     const menusDataWithComponents: MenuItem[] = menusData.map(
@@ -122,12 +127,12 @@ const MenuRender = () => {
   const fetchBill = async () => {
     const res = await apiGet("/bill");
     const billData = res?.data ?? null;
-    setBill(billData);
+    billRef.current = billData;
 
     if (billData?.status === EBillStatus.PAID) {
-      return redirect(`/payment/success?bill_id=${billData.id}`);
+      router.push(`/payment/success?bill_id=${billData.id}`);
     } else if (billData?.status === EBillStatus.COMPLETED) {
-      return redirect("/thank-you");
+      router.push("/thank-you");
     }
   };
 
@@ -142,6 +147,31 @@ const MenuRender = () => {
     fetchTags();
     fetchBill();
     fetchRestaurant();
+
+    const accessToken = getCookie("accessToken");
+
+    const connect = new signalR.HubConnectionBuilder()
+      .withUrl(`${process.env.NEXT_PUBLIC_BASE_API_URL}/hubs/ordering`, {
+        accessTokenFactory: () => `${accessToken}`,
+      })
+      .withAutomaticReconnect()
+      .build();
+    connect
+      .start()
+      .catch((err) =>
+        console.error("Error while connecting to SignalR Hub:", err)
+      );
+
+    connect.on("bill_status_updated", (updatedBill: BillUpdateFromSignalR) => {
+      const currentBill = billRef.current;
+      if (currentBill && updatedBill.resource.id === currentBill.id) {
+        if (updatedBill.status === EBillStatus.PAID) {
+          router.push(`/payment/success?bill_id=${currentBill.id}`);
+        } else if (updatedBill.status === EBillStatus.COMPLETED) {
+          router.push("/thank-you");
+        }
+      }
+    });
   }, []);
 
   return (
@@ -150,7 +180,7 @@ const MenuRender = () => {
         categories={categories}
         activeCategory={activeCategory}
         restaurantName={restaurant?.restaurant_name || ""}
-        tableName={bill?.table.name || ""}
+        tableName={billRef.current?.table.name || ""}
         onSelectCategory={setActiveCategory}
         onSearch={setSearchQuery}
       />
@@ -163,11 +193,21 @@ const MenuRender = () => {
               const isOther =
                 (!item.tags || item.tags.length === 0) && !isPromotion;
 
-              if (activeCategory === "All") return (category === "Promotion" && isPromotion) || (category === "Other" && isOther) || (item.tags && item.tags.some((tag) => tag.name === category));
-              if (category === "Other" && activeCategory === "Other") return isOther;
-              if (category === "Promotion" && activeCategory === "Promotion") return isPromotion;
+              if (activeCategory === "All")
+                return (
+                  (category === "Promotion" && isPromotion) ||
+                  (category === "Other" && isOther) ||
+                  (item.tags && item.tags.some((tag) => tag.name === category))
+                );
+              if (category === "Other" && activeCategory === "Other")
+                return isOther;
+              if (category === "Promotion" && activeCategory === "Promotion")
+                return isPromotion;
               return (
-                item.tags && item.tags.some((tag) => tag.name === category && activeCategory === category)
+                item.tags &&
+                item.tags.some(
+                  (tag) => tag.name === category && activeCategory === category
+                )
               );
             });
             if (categoryItems.length === 0) return null;
