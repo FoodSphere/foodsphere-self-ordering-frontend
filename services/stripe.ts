@@ -97,11 +97,6 @@ export async function checkout(totalPrice: number, bill: Bill) {
       return redirect(session.url as string);
     }
   } catch (error) {
-    toast({
-      icon: "ToastError",
-      variant: "error",
-      description: "Stripe Checkout Error.",
-    });
     throw error;
   }
 }
